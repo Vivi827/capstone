@@ -95,7 +95,7 @@ export function useRecorder(handlers: RecorderHandlers): RecorderControls {
       handlers.onStop(blob);
     };
 
-    recorder.start();
+    recorder.start(250); // timeslice for iOS Safari: guarantees ondataavailable fires
     handlers.onStart();
 
     // 30s auto-stop (D-08). Cleared by stop() if user taps early (Pitfall 5).

@@ -36,7 +36,8 @@ export type Action =
   | { type: 'rec/speakingDone' }
   | { type: 'rec/error'; reason: 'permission-denied' | 'generic'; message: string }
   | { type: 'rec/dismissError' }
-  | { type: 'history/toggle' };
+  | { type: 'history/toggle' }
+  | { type: 'session/end'; newId: string };
 
 export const initialState: ConversationState = {
   sessionId: null,
@@ -71,6 +72,13 @@ export function reducer(state: ConversationState, action: Action): ConversationS
       return state.rec.kind === 'error' ? { ...state, rec: { kind: 'idle' } } : state;
     case 'history/toggle':
       return { ...state, historyOpen: !state.historyOpen };
+    case 'session/end':
+      return {
+        sessionId: action.newId,
+        messages: [],
+        rec: { kind: 'idle' },
+        historyOpen: false,
+      };
     default: {
       // Exhaustiveness — fails the build if a new Action variant is added without a case
       const exhaustive: never = action;

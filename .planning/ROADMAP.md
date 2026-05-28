@@ -119,7 +119,7 @@ Plans:
 ---
 
 ### Phase 2: Integration & Demo Polish
-**Goal**: 세 슬라이스가 하나의 흐름으로 합쳐져 Vercel(프론트) + Railway(백엔드) 배포 URL에서 모바일로 데모 가능한 상태가 된다.
+**Goal**: 세 슬라이스가 하나의 흐름으로 합쳐져 Vercel(프론트) + Railway(백엔드) 배포 URL에서 모바일로 데모 가능한 상태가 된다. **최종 MVP 대화 흐름**: 사용자가 자유롭게 대화(턴 수 제한 없음) → 세션 종료 버튼 누름 → 누적된 axes 기반으로 Pally 최종 변화 표시.
 **배포 구조**: 프론트엔드(Next.js) → Vercel, Root Directory = `frontend/` (이찬희), 백엔드(FastAPI) → Railway, Root Directory = `backend/` (백은혜)
 **Depends on**: Phase 1A, Phase 1B, Phase 1C
 **Owner**: 전원
@@ -133,6 +133,7 @@ Plans:
      - persona drift: 같은 세션 안에서 casual → formal 또는 formal → casual로 바뀌는 발화 → EMA 보정 후 Pally가 서서히 이동
   4. STT/응답/TTS 평균 지연이 데모 가능 수준이며, 에러 시에는 사용자에게 명시적 메시지가 표시된다 (silent fail 없음)
   5. 발표자가 데모 디바이스 + 백업 디바이스 2대에서 동일 흐름을 재현했고, 알려진 에지 케이스 목록이 문서화되어 있다
+  6. **세션 종료 UX**: 대화 화면 상단 좌측 X 버튼을 누르면 현재 세션이 종료되고 새 채팅 화면(idle)으로 전환된다. 새 채팅 화면의 Pally는 방금 끝난 세션에서 누적된 최종 axes 상태를 반영한 모습으로 표시된다 (별도 결과 화면 없음 — 새 채팅 화면이 캐릭터 변화 확인 화면 역할). 턴 수 제한 없음 — 사용자가 원할 때 X 버튼으로 종료.
 **Plans**: TBD
 **Estimated effort**: 3 days (2026-06-04 → 2026-06-06, 데모 전일 버퍼 1일 포함)
 **UI hint**: yes
@@ -144,10 +145,10 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Foundation | 1/1 | Complete | 2026-05-21 |
-| 1A. FE Screens & Audio Shell | 0/5 | In progress | - |
-| 1B. Pally Canvas2D + Engine ADR | 0/? | Not started | - |
-| 1C. Voice + Inline Feedback BE + Schema | 1/1 | Complete | 2026-05-22 |
-| 2. Integration & Demo Polish | 0/? | Not started | - |
+| 1A. FE Screens & Audio Shell | 5/5 | Complete | 2026-05-26 |
+| 1B. Pally Canvas2D + Engine ADR | 1/1 | Complete | 2026-05-25 |
+| 1C. Voice + Inline Feedback BE + Schema | 1/1 | Complete | 2026-05-26 |
+| 2. Integration & Demo Polish | 0/1 | In progress | - |
 
 ## Coverage Validation
 
@@ -195,4 +196,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-05-21*
-*Last updated: 2026-05-22 — **Phase 1C complete** (백은혜): `/api/stt`+`/api/tts`+`/api/feedback`+`/api/chat` 구현 완료, Supabase sessions/messages 마이그레이션 실행, 인라인 한국어 힌트(`hint_ko`) structured payload, Railway 배포 Online (`https://capstone-production-e8c2.up.railway.app`), Vercel `NEXT_PUBLIC_BACKEND_URL` 환경변수 등록 완료. Earlier: **Phase 0 complete** (00-01 plan shipped, UAT 5/5, see 00-01-SUMMARY.md); ready for parallel 1A/1B/1C start. Earlier history: Phase 0 minimized, OpenAI replaced with GCP Vertex AI, Supabase schema moved to Phase 1C, Python engine ADR moved to Phase 1B; Phase 1A reduced to one main screen, `/feedback` UI removed from MVP, onboarding removed from MVP (character_name/level use defaults until v2); **monorepo 폴더 분리 명시**: Repo Layout 섹션 추가(`frontend/` + `backend/` + `ai/` 역할 + 작업 충돌 방지), Phase 0 SC를 `frontend/` 기준으로 재작성 (`cd frontend && npm run dev`, `frontend/lib/types/`, `frontend/lib/supabase/client.ts`, `frontend/.env.example`, `frontend/app/page.tsx`), 루트 `.env.example` 제거, Phase 2 배포 구조에 Vercel/Railway Root Directory 명시; **공유 타입 소유권 분담**: Phase 0은 1A에 필요한 최소 UI 타입(`Message`/`Session`)만 정의, `Axes`/`CharacterParams`는 Phase 1B(김민주)로 이관 — 엔진(`ai/analyzer.py` + `matrix_engine.py`)을 다루는 사람이 정확한 타입을 정의하기 위해. 백엔드(Python)는 자체 Pydantic 모델 사용, FE↔BE 공유 계약은 JSON wire format으로; **2026-05-21 Codex review 반영**: 오디오 책임을 1A mock audio shell + 1C backend contract + Phase 2 real wiring으로 분리, 1C가 1B 전체가 아닌 D+1 ADR만 소비하도록 병렬성 보존, 김민주 frontend 작업 영역을 `components/pally`, `app/dev/pally`, `lib/types/character.ts`로 명시, FastAPI/Python 백엔드 기준으로 GCP SDK/환경변수 정리; **2026-05-21 Phase 0 planning**: 00-01-PLAN.md 작성, Plans/Progress 컬럼 갱신*
+*Last updated: 2026-05-26 — **Phase 2 SC #6 추가**: 최종 MVP 흐름 확정 — 세션 종료 버튼 → 누적 axes 기반 Pally 최종 변화 표시 (턴 수 제한 없음). Earlier: **Phase 2 In Progress** (백은혜): Part-C 브랜치에 mock→real 전환 완료 (STT `/api/stt` 실호출, `/api/chat` 실호출, TTS base64 재생, `hint_ko` 수신). 데모 3케이스(casual/formal/persona drift) 로컬 E2E 9/9 PASS. 빌드·타입 검사 통과. 미커밋 변경사항 main 머지 후 Vercel 자동 배포 예정. Earlier: **Phase 1C complete** (백은혜): `/api/stt`+`/api/tts`+`/api/feedback`+`/api/chat` 구현 완료, Supabase sessions/messages 마이그레이션 실행, 인라인 한국어 힌트(`hint_ko`) structured payload, Railway 배포 Online (`https://capstone-production-e8c2.up.railway.app`), Vercel `NEXT_PUBLIC_BACKEND_URL` 환경변수 등록 완료. Earlier: **Phase 0 complete** (00-01 plan shipped, UAT 5/5, see 00-01-SUMMARY.md); ready for parallel 1A/1B/1C start. Earlier history: Phase 0 minimized, OpenAI replaced with GCP Vertex AI, Supabase schema moved to Phase 1C, Python engine ADR moved to Phase 1B; Phase 1A reduced to one main screen, `/feedback` UI removed from MVP, onboarding removed from MVP (character_name/level use defaults until v2); **monorepo 폴더 분리 명시**: Repo Layout 섹션 추가(`frontend/` + `backend/` + `ai/` 역할 + 작업 충돌 방지), Phase 0 SC를 `frontend/` 기준으로 재작성 (`cd frontend && npm run dev`, `frontend/lib/types/`, `frontend/lib/supabase/client.ts`, `frontend/.env.example`, `frontend/app/page.tsx`), 루트 `.env.example` 제거, Phase 2 배포 구조에 Vercel/Railway Root Directory 명시; **공유 타입 소유권 분담**: Phase 0은 1A에 필요한 최소 UI 타입(`Message`/`Session`)만 정의, `Axes`/`CharacterParams`는 Phase 1B(김민주)로 이관 — 엔진(`ai/analyzer.py` + `matrix_engine.py`)을 다루는 사람이 정확한 타입을 정의하기 위해. 백엔드(Python)는 자체 Pydantic 모델 사용, FE↔BE 공유 계약은 JSON wire format으로; **2026-05-21 Codex review 반영**: 오디오 책임을 1A mock audio shell + 1C backend contract + Phase 2 real wiring으로 분리, 1C가 1B 전체가 아닌 D+1 ADR만 소비하도록 병렬성 보존, 김민주 frontend 작업 영역을 `components/pally`, `app/dev/pally`, `lib/types/character.ts`로 명시, FastAPI/Python 백엔드 기준으로 GCP SDK/환경변수 정리; **2026-05-21 Phase 0 planning**: 00-01-PLAN.md 작성, Plans/Progress 컬럼 갱신*

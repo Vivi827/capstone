@@ -100,11 +100,76 @@ def test_feedback():
             ok("TTS MP3 저장됨: test_tts_output.mp3")
 
 
-# ── 3. TTS ────────────────────────────────────────────
+# ── 3. Chat ────────────────────────────────────────────
+
+def test_chat():
+    section("3. POST /api/chat")
+    import uuid
+
+    session_id = str(uuid.uuid4())
+    payload = {
+        "utterance": "Hello Pally, I want to practice English.",
+        "session_id": session_id,
+        "level": "B1",
+    }
+
+    r = httpx.post(f"{BASE}/api/chat", json=payload, timeout=60)
+    if r.status_code != 200:
+        fail("/api/chat 호출", f"HTTP {r.status_code}: {r.text[:200]}")
+        return
+
+    data = r.json()
+    expected_axes = ["Formality", "Energy", "Intimacy", "Humor", "Curiosity"]
+    expected_character = ["tone_casual", "energy_level", "humor_level"]
+
+    if data.get("transcript") != payload["utterance"]:
+        fail("transcript echo", f"expected {payload['utterance']}, got {data.get('transcript')}")
+    else:
+        ok("transcript echoed")
+
+    if not data.get("reply"):
+        fail("reply present")
+    else:
+        ok("reply present")
+
+    if not isinstance(data.get("hint_ko"), dict):
+        fail("hint_ko present")
+    else:
+        ok("hint_ko present")
+
+    if not isinstance(data.get("axes"), dict):
+        fail("axes present")
+    else:
+        missing = [k for k in expected_axes if k not in data["axes"]]
+        if missing:
+            fail("axes keys", f"missing {missing}")
+        else:
+            ok("axes keys present")
+
+    if not isinstance(data.get("character"), dict):
+        fail("character present")
+    else:
+        missing = [k for k in expected_character if k not in data["character"]]
+        if missing:
+            fail("character keys", f"missing {missing}")
+        else:
+            ok("character keys present")
+
+    if data.get("tts_audio"):
+        try:
+            audio_bytes = base64.b64decode(data["tts_audio"])
+            ok(f"tts_audio is valid base64 ({len(audio_bytes):,} bytes)")
+        except Exception as exc:
+            fail("tts_audio base64", str(exc))
+    else:
+        ok("tts_audio is null or absent")
+
+
+# ── 4. TTS ────────────────────────────────────────────
 
 
 def test_tts():
-    section("3. POST /api/tts")
+    section("4. POST /api/tts")
     r = httpx.post(
         f"{BASE}/api/tts",
         json={"text": "Hello! Your English sounds great today.", "voice": "en-US-Journey-F"},
@@ -149,6 +214,7 @@ if __name__ == "__main__":
     try:
         test_health()
         test_feedback()
+        test_chat()
         test_tts()
         test_stt()
     except AssertionError as e:

@@ -533,24 +533,32 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=400, detail="utterance is required")
 
     # 1. Supabase 세션 & 대화 이력
+    # Phase 1C에서는 frontend가 anonymous client UUID로 session_id를 보내면
+    # 동일 세션의 이전 messages가 DB에서 로드되고 이후 요청에 conversation_history로 이어집니다.
     character_name = req.character_name or "Pally"
     level = req.level or "B1"
-    history: list = req.conversation_history or []
+    history: list[ChatMessage] = req.conversation_history or []
 
     if req.session_id and _SUPABASE_ENABLED:
         try:
             sb = get_supabase()
             session_res = sb.table("sessions").select("id, character_name, level").eq("id", req.session_id).execute()
+            if getattr(session_res, "error", None):
+                raise RuntimeError(getattr(session_res.error, "message", repr(session_res.error)))
             if session_res.data:
                 character_name = session_res.data[0]["character_name"]
                 level = session_res.data[0]["level"]
             else:
-                sb.table("sessions").insert({
+                insert_session_res = sb.table("sessions").insert({
                     "id": req.session_id,
                     "character_name": character_name,
                     "level": level,
                 }).execute()
+                if getattr(insert_session_res, "error", None):
+                    raise RuntimeError(getattr(insert_session_res.error, "message", repr(insert_session_res.error)))
             msg_res = sb.table("messages").select("role, transcript").eq("session_id", req.session_id).order("created_at").execute()
+            if getattr(msg_res, "error", None):
+                raise RuntimeError(getattr(msg_res.error, "message", repr(msg_res.error)))
             if msg_res.data:
                 history = [ChatMessage(role=m["role"], content=m["transcript"]) for m in msg_res.data]
         except Exception as e:
@@ -588,7 +596,7 @@ async def chat(req: ChatRequest):
     if req.session_id and _SUPABASE_ENABLED:
         try:
             sb = get_supabase()
-            sb.table("messages").insert([
+            save_res = sb.table("messages").insert([
                 {
                     "session_id": req.session_id,
                     "role": "user",
@@ -604,6 +612,8 @@ async def chat(req: ChatRequest):
                     "character": character,
                 },
             ]).execute()
+            if getattr(save_res, "error", None):
+                raise RuntimeError(getattr(save_res.error, "message", repr(save_res.error)))
         except Exception as e:
             logging.warning(f"Supabase save failed: {e}")
 

@@ -53,6 +53,7 @@ export function TalkButton({ rec, disabled = false, onPressStart, onPressStop }:
         'block bg-transparent border-0 p-0',
         'transition-transform duration-150 active:scale-95',
         'disabled:cursor-default',
+        'touch-manipulation', // Eliminate 300ms tap delay on mobile
       )}
       style={{ width: 104, height }}
     >

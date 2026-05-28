@@ -13,10 +13,11 @@
 2. [GET /api/health](#2-get-apihealth)
 3. [POST /api/stt](#3-post-apistt)
 4. [POST /api/feedback](#4-post-apifeedback)
-5. [POST /api/tts](#5-post-apitts)
-6. [파트 A 연동 가이드](#6-파트-a-연동-가이드)
-7. [파트 B 연동 가이드](#7-파트-b-연동-가이드)
-8. [에러 코드](#8-에러-코드)
+5. [POST /api/chat](#5-post-apichat)
+6. [POST /api/tts](#6-post-apitts)
+7. [파트 A 연동 가이드](#7-파트-a-연동-가이드)
+8. [파트 B 연동 가이드](#8-파트-b-연동-가이드)
+9. [에러 코드](#9-에러-코드)
 
 ---
 
@@ -215,7 +216,88 @@ const res2 = await fetch('http://localhost:8000/api/feedback', {
 
 ---
 
-## 5. POST /api/tts
+## 5. POST /api/chat
+
+사용자의 텍스트 발화를 받아 Gemini 영어 응답, Google TTS 음성, 인라인 한국어 힌트, 5축/캐릭터 파라미터를 함께 반환합니다.
+
+#### Request
+
+```json
+{
+  "utterance": "Hello Pally, I want to practice English",
+  "session_id": "optional-session-uuid",
+  "current_axes": {
+    "Formality": 30,
+    "Energy": 55,
+    "Intimacy": 40,
+    "Humor": 45,
+    "Curiosity": 25
+  },
+  "conversation_history": [
+    { "role": "user", "content": "Hi" },
+    { "role": "pally", "content": "Hello! How are you today?" }
+  ],
+  "character_name": "Pally",
+  "level": "B1"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `utterance` | string | ✅ | 사용자의 텍스트 발화. |
+| `session_id` | string | ❌ | 익명 세션 UUID. 있으면 같은 세션의 이전 대화 이력을 Supabase에서 로드하고 이후 메시지를 저장합니다. |
+| `current_axes` | object | ❌ | 이전 누적 5축 점수. 있으면 EMA가 적용됩니다. |
+| `conversation_history` | array | ❌ | 클라이언트가 이미 보유한 대화 이력. 서버에서 로드된 이력이 없을 때 참조됩니다. |
+| `character_name` | string | ❌ | 응답에 사용할 캐릭터 이름. 기본값은 `Pally`. |
+| `level` | string | ❌ | 응답 난이도. `A2` / `B1` / `B2` / `C1`. 기본값은 `B1`. |
+
+#### Response `200`
+
+```json
+{
+  "status": "ok",
+  "transcript": "Hello Pally, I want to practice English",
+  "reply": "That sounds great! What part do you want to work on first?",
+  "tts_audio": "//base64 mp3...",
+  "axes": {
+    "Formality": 34,
+    "Energy": 60,
+    "Intimacy": 42,
+    "Humor": 20,
+    "Curiosity": 50
+  },
+  "character": {
+    "tone_casual": 60,
+    "energy_level": 55,
+    "humor_level": 25
+  },
+  "character_labels": {
+    "tone": "casual",
+    "energy": "moderate",
+    "humor": "light"
+  },
+  "hint_ko": {
+    "hint": "좋은 문장이에요! 조금 더 자연스럽게 말하려면~",
+    "expression": "That sounds great!"
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `transcript` | string | 입력된 발화를 그대로 에코한 텍스트. |
+| `reply` | string | Pally의 영어 회화 응답. |
+| `tts_audio` | string / null | Pally 응답을 MP3로 변환한 base64. 실패 시 `null`. |
+| `axes` | object | EMA 적용 후 5축 점수. |
+| `character` | object | Canvas/캐릭터에 사용할 파라미터. |
+| `character_labels` | object | 사람이 읽을 수 있는 레이블. |
+| `hint_ko` | object / null | 한국어 인라인 힌트. |
+
+> `hint_ko`는 교정 설명 또는 칭찬과 함께, 올바른 영어 표현을 함께 제공합니다.
+
+---
+
+## 6. POST /api/tts
 
 텍스트 → MP3 오디오 단독 호출용. `/api/feedback`에서 TTS가 자동 포함되므로, 별도 텍스트를 음성으로 변환할 때 사용.
 
@@ -269,7 +351,7 @@ audio.play();
 
 ---
 
-## 6. 파트 A 연동 가이드
+## 7. 파트 A 연동 가이드
 
 ### /feedback 페이지 구현 시 권장 흐름
 
@@ -309,7 +391,7 @@ const sendFeedback = async (utterance) => {
 
 ---
 
-## 7. 파트 B 연동 가이드
+## 8. 파트 B 연동 가이드
 
 `/api/feedback` 응답의 `character` 값을 Canvas2D에 전달하면 됩니다.
 
@@ -334,7 +416,7 @@ interface CharacterParams {
 
 ---
 
-## 8. 에러 코드
+## 9. 에러 코드
 
 | 코드 | 상황 | 대응 |
 |------|------|------|
