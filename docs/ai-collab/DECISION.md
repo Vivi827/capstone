@@ -47,6 +47,22 @@ verification. Development plan only. No gate / runtime / labeling change.
   make pure ML win, but it is a concrete serve-time argument against
   pure-rule.
 
+## Day 4 result: k/ngram sweep (dev-200, purged training)
+
+| config | ML MAE / rho | hybrid MAE / rho |
+|---|---|---|
+| k=5 bigram (Day 1) | 14.97 / 0.284 | 14.28 / 0.391 |
+| k=7 unigram | 15.15 / 0.324 | 14.52 / 0.412 |
+| k=15 bigram | 15.08 / 0.350 | 14.49 / 0.420 |
+| rule | 14.54 / 0.372 | - |
+
+Pure ML never reaches rule's 0.372 on rank in any {k in 3..15} x {1..3-gram}
+config (best 0.350). hybrid at k=7-15 reaches 0.41-0.42, clearly above rule.
+Within the TF-IDF kNN family, tuning does not make pure ML competitive with
+the current draft_axes labels. This sharpens the fork: a better teacher
+(Flash-Lite) + distillation, a different model family, human labels, OR
+accepting hybrid (not pure ML) as the transition target.
+
 ## DECIDED — revised Days 4-9
 
 ### Fixes before any further experiment
