@@ -1,172 +1,149 @@
-# DECISION — cycle 4: label strategy & calibration (Round 3 synthesis)
+# DECISION — cycle 4b: Day 1-3 results, corrections, revised plan
 
-2026-09-10. Claude Round 1 + Codex Round 2 + Claude verification. This sets a
-development plan. It does NOT change the acceptance gate, the runtime default,
-or authorize human labeling beyond what is listed. Two items are marked
-**USER DECISION** and are not settled here.
+2026-09-11. Claude Round 1 (Day 1-3 diagnosis) + Codex Round 2 + Claude
+verification. Development plan only. No gate / runtime / labeling change.
 
-## AGREED (both AIs, verified where checkable)
+## Corrections to Claude's Day 1-2 claims (Codex caught, Claude verified)
 
-1. **No bulk human labeling is committed.** Diagnosis first. pilot54 and
-   first40 stay unscored for now.
-2. **The AI-draft teacher is not proven to be *the* bottleneck.** Claude's
-   Round 1 "that is what produced the current ML weakness" is retracted as
-   premature. Codex re-ran the 338 / 938 / 3,137 comparison (k=5, bigrams):
+1. **"ML overfits NICT because NICT dominates training" is WRONG.** Verified
+   source counts: NICT 600, CHiME 600, AMI 599, HCRC 500, Taskmaster 500.
+   NICT is tied-largest at 19.1%, not dominant. Drop the overfitting story.
+2. **"the leak was flattering ML on rank" is WRONG direction.** Purging moves
+   ML rho +0.004 (better) and MAE +0.069 (worse); hybrid rho also improves.
+   The overlap-100 vs clean-100 gap is a source-composition difference
+   (clean-100 = Taskmaster 58 / AMI 2; overlap-100 = AMI 65), not a leakage
+   effect. Both slices are dev, neither is a test.
+3. **"ML does not generalize to Taskmaster" is too blanket.** Verified
+   per-axis on Taskmaster: Energy rho ML -0.182 vs rule +0.401 (ML bad), but
+   Curiosity rho ML +0.751 vs rule +0.665 AND MAE ML 21.9 vs rule 31.4 (ML
+   clearly best). Intimacy MAE ML 27.2 vs rule 15.9 (ML much worse). The
+   problem is axis x source specific.
+4. **E3 caps ablation is moot.** `ml_baseline._tokenize()` already lowercases,
+   and dev-200 has 0 repeated-`!?` rows, 1 row with `!`. Only the punctuation
+   part of the STT finding stands.
 
-   | Training | dev-200 MAE | dev-200 mean rho |
-   |---|---:|---:|
-   | Full 3,137 | 14.90 | 0.280 |
-   | Seed 338 | 17.07 | 0.318 |
-   | Seed + accepted NICT 938 | 15.46 | 0.294 |
+## What actually holds after Day 1-3
 
-   Dropping AI drafts helps rank slightly, hurts MAE, and reverses on the
-   non-overlap slice. No CI. Does not identify teacher vs capacity vs input.
+- ML alone on dev-200 (dev-group-purged, bigram, k=5): MAE 14.97 / mean rho
+  0.284. hybrid 14.28 / 0.391. rule 14.54 / 0.372. ML is below both on rank.
+- The training target for AMI / CHiME / HCRC / Taskmaster **is `draft_axes`
+  output verbatim** (verified: rho 1.000, MAE 0.000 reproduction). NICT
+  differs on 208/567 rows, Formality/Energy only, mean |delta| 2.6/1.1.
+- The student reproduces that deterministic teacher only moderately
+  (held-out rho ~0.33 AMI / ~0.46 Taskmaster / ~0.54 NICT). A lexical TF-IDF
+  kNN cannot recover a lexical function it trained on beyond ~0.4-0.5.
+- **Both teacher and student have problems** (Codex + Claude agree):
+  - teacher: source-specific Intimacy over-scoring, verified via
+    `bucket_sensitivity` variantB -- teacher minus human Intimacy bias
+    AMI +15.6 / NICT +7.3 / Taskmaster +27.8. ML's large Intimacy MAE is
+    consistent with inheriting this.
+  - student: cannot reproduce even the deterministic teacher well.
+- **STT input skew (verified in code, not yet with a real STT sample):**
+  `backend/main.py` sets `enableAutomaticPunctuation=False` (both STT call
+  sites) and passes the transcript straight to `_analyze_axes`. On
+  punctuation-stripped dev-200: rule rho 0.372 -> 0.317, ML 0.284 -> 0.274,
+  hybrid 0.391 -> 0.378. The rule path loses ~0.055 rho it keeps in the
+  current eval; hybrid-over-rule margin widens 0.019 -> 0.061. This does not
+  make pure ML win, but it is a concrete serve-time argument against
+  pure-rule.
 
-3. **dev-200 is not a clean holdout.** VERIFIED: 100 of 200 dev rows share a
-   canonical training group (AMI 65 / NICT 28 / Taskmaster 7); the other 100
-   are AMI 2 / NICT 40 / Taskmaster 58. `gold-holdout` in
-   `evaluate_axis_analyzers.py` does not enforce group exclusion. Every
-   comparison from here must use a **common training set purged of all
-   dev-200 canonical groups** (recover NICT provenance first), membership
-   frozen across arms.
-4. **AI consensus is never a human label.** An alternative LLM teacher is a
-   diagnostic of *this* teacher's bias against the human anchor, not truth.
-5. **An independent human evaluation stays required** for any "reads human
-   tone better" claim. Minimum for the existing reserved pool: **176 items ×
-   5 axes × 2 trained humans = 1,760 scores**, only after model / rubric /
-   inputs / comparators / exclusions are frozen. Keep per-scorer ratings;
-   never fill a missing rating with a teacher or a consensus.
-6. **Calibration != model improvement and != proof of correctness.** It only
-   measures whether scorers share an interpretation. Shared bias survives
-   perfect agreement.
+## DECIDED — revised Days 4-9
 
-## DECIDED (this cycle, within existing constraints)
+### Fixes before any further experiment
 
-### D1. Calibration shrinks to 30 items x 2 primary scorers (was 4 x 90)
+- Every split (E1, E4, size curves) must attach a **provenance-recovered
+  source-qualified canonical group to each row/example** and assert 0 group
+  intersection after splitting. `split_by_source_group`'s empty-group ->
+  utterance-hash fallback re-leaks NICT (verified: 14 NICT rows). IDF fit on
+  the train part only.
+- Freeze a baseline ledger: original training SHA-256
+  `23051000...`, dev-200 SHA-256 `7dedff32...`, **and the hash of the
+  2,940-row purged artifact once it is written to a file** (not the 3,137
+  hash). Record the exact model spec of the fixed rule and the fixed old
+  hybrid (rule code version + ML k/ngram + training hash), not just a name.
 
-- 10 items per source, the **two intended primary evaluation scorers** in
-  slots A/B. Slots C/D are kept for blind adjudication of >20-point gaps; if
-  C/D later become primary scorers they first qualify on shared items.
-- 30 x 5 axes x 2 = **300 scores** (was 1,800).
-- Before regenerating: **fix the sampler** -- `_take_by_hash` currently hashes
-  rows and favours larger groups; replace with (i) pick unique groups by a
-  seeded hash, then (ii) pick one random utterance within each chosen group.
-  Drop the dead `rng.shuffle` in the residual arm (`_take_by_hash` re-sorts
-  it).
-- **Fix the probability language.** For a fixed A/B pair, a >20-point gap at
-  10% prevalence gives `1 - 0.9^10 = 65%` per source, ~28% simultaneous
-  across three sources -- not 95%. State it as a screen, not a guarantee. Use
-  the hypergeometric form against the actual eligible population, not
-  `0.9^n`. Escalate toward 30/source only if a persistent source-specific
-  inconsistency shows up.
-- **Human-check the rubric examples first.** VERIFIED: 6 of 8 workbook
-  examples reproduce seed-dataset scores exactly and the seed labels are
-  AI-assisted (gemini/gpt/claude-assisted), not human-verified. Anchoring 4
-  reviewers on AI scores defeats the calibration. A human must re-score the
-  examples (or replace them) before distribution.
-- Calibration still runs **before** first40 (keeps contract section 7 order).
+### Experiment bundle (Days 4-6, no new human labels)
 
-### D2. Two-week diagnosis order (no new human labels in days 1-5)
+- **E1 (fixed):** provenance-clean group-held-out split inside the purged
+  training set. Per source x axis: student-vs-stored, current-`draft_axes`-vs-
+  stored, plus the axis constant/median baseline, target variance, bias, and
+  NA reason so a narrow-range low MAE is not mistaken for fidelity. NICT
+  included but never averaged into one number with the draft/seed rows.
+  Reading is "can the current model approximate this held-out weak-label
+  distribution", not a single cause for human performance.
+- **k/ngram:** k in {3,5,9} x {uni,bi} on the purged set, per source x axis,
+  with neighbor diagnostics (neighbor source mix, top-k similarity,
+  zero-similarity/OOV rate, label variance). This is a within-TF-IDF search,
+  not a verdict on representation.
+- **E2:** dropped for non-NICT (verified no-op). NICT: a small controlled
+  Formality/Energy offset swap on the 208 differing rows only, texts /
+  membership / IDF / k fixed. Not billed as "a better teacher".
+- **E4 size curve:** deferred until after the Flash-Lite comparison; only run
+  if E1 + teacher comparison leave the scale question open.
+- **E5:** target-column variance / uniqueness / nonzero count per source x
+  reviewer, and a prespecified near-duplicate rule with a reviewer x source
+  cross-tab. No text-only ceiling claim.
 
-- **Days 1-3 -- measurement + teacher-fidelity + representation.**
-  - Rebuild all comparisons on a dev-group-purged common training set;
-    freeze a baseline/exclusion ledger with hashes (experimental training
-    SHA-256 `23051000c3c2c4e0c38a876de61973d156188ef151faad69fca18caf20ddc1e9`).
-  - Re-run rule / ML / hybrid with original vs decimal targets, unigram vs
-    bigram, 338 vs 3,137, per-source and per-reviewer slices, NA-aware.
-  - Teacher fidelity: group-held-out split *inside* training; measure how
-    well the student reproduces the stored weak labels with no same-group
-    neighbours. Separately measure current-`draft_axes` vs stored-label
-    mismatch (already have: 221/600, Formality/Energy only, |delta| 2.6/1.1).
-  - Representation with labels+texts fixed: k in {3,5,9}, unigram/bigram, and
-    one caps/repeated-punctuation ablation **only if** the real transcript/
-    STT inputs keep those features (check first).
-  - Do NOT spend days on the decimal or dedup hypotheses -- measured effect is
-    ~0.006 MAE and there are 0 duplicate utterances.
-- **Days 3-5 -- calibration + rubric + alternative teacher.**
-  - Run the fixed 30x2 calibration (D1). Inspect every >20 gap, per-axis
-    signed and absolute mean gaps, notes. A source-axis signed mean gap > 10
-    or repeated >20 gaps -> discuss + fresh shared rescoring before first40.
-  - Freeze the current-utterance-only rubric.
-  - One frozen `gemini-2.5-flash-lite` protocol (model already used in
-    `ai/generate_feedback.py`): structured 5-axis output, explicit anchors in
-    the prompt, no buckets / gold / source / model hints, current utterance
-    only, low fixed temperature, log everything, reject invalid outputs.
-    Score all 200 dev utterances once + 30 group-distinct items (10/source)
-    repeated once for instability. Compare its per-axis MAE/bias/rho vs
-    human gold to `draft_axes`'s. A small non-evaluation preflight confirms
-    account/schema access before the run.
-- **Days 6-9 -- bounded first40 (only if calibration prerequisites hold).**
-  - Freeze B = chosen baseline rows after dev-group purge (record real row
-    count + hash; do not call it "3,137"). No k / mixture retuning after
-    this point.
-  - 2 independent humans score the same 40 E/C/I items; decimals kept; 3rd
-    blind adjudicator for >20 gaps; one aggregated training row per item;
-    missing F/H stay missing.
-  - Compare B, B+S(automated E/C/I labels), B+S(human E/C/I labels) -- same 40
-    texts, identical IDF/vectors/k/rounding; the automated arm is a tagged
-    control, never a fill. Keep F/H from B (frozen) so partial-label refit
-    does not silently move unreviewed axes.
-  - Evaluate on dev-200 with B purged of all its groups: E/C/I macro MAE/rho,
-    all three axis deltas, source/reviewer slices, paired group bootstrap
-    (95%, 10,000, seed 20260910). Show the non-overlap-100 sensitivity and
-    5-axis guardrails vs fixed rule / old hybrid.
-- **Days 10-14 -- decide by prespecified rules.**
-  - Expand trigger (not a new gate): human vs same-text automated control
-    improves E/C/I macro MAE by >=1.0 and macro rho by >=0.05, paired 95%
-    intervals exclude no-improvement, no evaluated axis worse by >1 MAE or
-    >0.03 rho, and it beats B itself and is not a source/reviewer artifact.
-    -> then annotate at most the remaining 80, reassess the curve. Never
-    thousands.
-  - Stop if gains < 0.2 MAE and < 0.01 rho **and** intervals exclude the
-    worthwhile effects. Wide intervals spanning benefit and harm =
-    **inconclusive**, not "human labels never help".
-  - Only if a model is genuinely ready: freeze everything, hand off 176x2
-    independent evaluation (AGREED #5). Otherwise the reserved pool stays
-    closed past two weeks. A calendar deadline is not evidence to open it.
+### Flash-Lite alternative-teacher comparison (Days 6-8) -- USER PREFLIGHT
 
-### D3. Phase 2 artifact corrections (before any distribution)
+- One frozen `gemini-2.5-flash-lite` protocol (model already used in
+  `ai/generate_feedback.py` / `backend/main.py`). Structured 5-axis output,
+  explicit rubric anchors in the prompt, current utterance only, no gold /
+  source / bucket / model hints, low fixed temperature, log everything,
+  reject invalid outputs.
+- Score all 200 dev utterances once + 30 group-distinct items (10/source)
+  repeated once for stability. Compare per-axis MAE / signed bias / rho vs
+  the human gold to `draft_axes`.
+- **If materially better than `draft_axes` on the axes where ML is weak:**
+  relabel a fixed **train-only** subset with Flash-Lite, retrain the student
+  with identical representation/k, and compare that deployment candidate to
+  the current-label student on dev. The bar is "the distilled student
+  improves", not "the teacher improved".
+- Dev-generated Flash-Lite scores never enter training.
 
-- Regenerate calibration at 30x2 with the fixed sampler + probability text +
-  human-checked examples.
-- pilot54: keep as candidates, **do not distribute**. Its 9-control
-  allocation is contingent on the calibration size and frees up when
-  calibration shrinks.
-- first40 40: keep; add a recorded selection-model provenance (which model /
-  data / ngram produced the disagreement scores).
-- Fix the decimal path in `_validate_axes` / `_validate_partial_axes` /
-  `ml_baseline` validation and `select_ml_transition_annotation_sets` before
-  training on reviewer means.
-- Fix stale text: contract section 11 "calibration 48"; workbook wording;
-  `evaluate_axis_analyzers.py` gold-holdout "frozen" description; add
-  group-exclusion enforcement to gold-holdout.
-- Keep: stable IDs, per-slot blind manifests, raw/adjudicated separation,
-  closed reservations (train-1200 ∩ gold-600 canonical groups = 0, verified).
+### first40 (Days 8-9)
 
-## USER DECISION (not settled here)
+- Run the bounded before/after ONLY if the automated path (better teacher ->
+  better student) does not clear hybrid on dev. If it does clear hybrid,
+  skipping first40 is a plan change to be recorded, and the user decides it
+  (see below).
 
-### U1. Strategic goal -- keep the human-gold acceptance gate, or change it?
+### Deployment-path validation (before any gate)
 
-- **Keep (default):** target "analyses human-perceived tone better", human
-  gold gate stays, D1-D3 proceed as written. "Reproduce the teacher" is at
-  most an auxiliary diagnostic.
-- **Change:** target "reproduces the rule/AI teacher consistently". The
-  human-gold gate is void, the evaluation metric changes, calibration and
-  the 176x2 eval mostly fall away. This is a real scope change and only the
-  user can make it.
+- `MLAxisAnalyzer()` default = k=5 / unigram / `axis_dataset_week2.jsonl`
+  (338 rows) or `PALLY_AXIS_DATASET`. This is NOT the research candidate.
+  Before the gate, wire the deployment adapter to the exact frozen artifact
+  (purged training file + k + ngram) and verify it, and confirm the
+  rule-fallback path is not silently mixing into "ML" outputs.
 
-### U2. The calibration artifacts already built (4x90 + workbooks, committed `fce9cea`)
+## USER DECISION POINTS — in order
 
-- **Rebuild to 30x2 (default, matches D1):** supersede the 4 workbooks; keep
-  the 90-row candidate file as the eligible pool.
-- **Keep 4x90 as-is:** only if the user wants the stronger per-source screen
-  now and accepts 1,800 scores of reviewer time before diagnosis.
+1. **Flash-Lite preflight (now-ish).** The comparison needs one real
+   `gemini-2.5-flash-lite` call to confirm the API key / project / structured
+   output work (CLAUDE.md section 4). The model is already in the codebase.
+   Decision: proceed with a small preflight call now, or provide / confirm
+   the credential first.
+2. **U1 after the diagnosis bundle.** Keep the human-perceived-tone gate
+   (default) vs change the goal to "reproduce a teacher". E1's result does
+   not force this either way.
+3. **Execution order after Flash-Lite.** If the automated teacher -> student
+   path clears hybrid on dev: skip first40 (record as a plan change) or still
+   do bounded first40 for corroboration; when to resume 30x2 calibration
+   scoring.
+4. **Final-eval protocol, before opening the reserved pool.** Concrete
+   CI-based pass / inconclusive rule, tolerances, required axes, scorer
+   count, per-set sample sizes. 176 x 2 x 5 = 1,760 scores is the current
+   minimum and is not proven sufficient; a smaller confirmatory design needs
+   a prospective power argument and explicit approval.
+5. **Runtime switch.** After a frozen candidate passes `final_gate` and
+   reproduces on `gate4_reproduction`, with the deployment adapter verified
+   and regression-vs-rule reported: explicit approval to set
+   `PALLY_AXIS_ANALYZER`. Statistical uncertainty = not a pass.
 
 ## Not doing
 
 - Not opening the reserved final pool.
-- Not changing `PALLY_AXIS_ANALYZER`.
-- Not scoring pilot54 or first40 before the calibration + rubric gate.
+- Not changing `PALLY_AXIS_ANALYZER` or the gate.
+- Not scoring calibration / pilot / first40 yet.
 - Not treating any LLM output (single or consensus) as a human label.
-- Not committing to any labeling volume beyond first40 (+ its 80 remainder,
-  conditionally).
+- Not committing to a labeling volume beyond a possible bounded first40.

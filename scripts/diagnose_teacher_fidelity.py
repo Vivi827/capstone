@@ -11,19 +11,20 @@ Method, inside the dev-group-purged training set only:
   * run `draft_axes` on the same held-out part, measure ITS agreement with
     the stored weak labels.
 
-Reading:
-  * student reproduces stored labels well (low MAE, high rho) but both are
-    far from human on dev  ->  supervision is the ceiling; more of the same
-    automated labels will not help.
-  * student cannot reproduce the stored labels (rho << draft_axes-vs-stored)
-    ->  the representation is the limit; fix representation before labels.
+Reading (directional only, NOT a pass/fail threshold -- cycle 4b DECISION):
+  * higher student-vs-stored fidelity  ->  the current model can approximate
+    this held-out weak-label distribution.
+  * lower student-vs-stored fidelity than draft_axes-vs-stored  ->  the
+    representation loses signal the teacher had.
+  Neither identifies a single cause of the dev-vs-human gap: data density,
+  split difficulty, mixed teacher provenance, k, and feature loss all
+  contribute. Do not conclude "more automated labels will not help" from this
+  script alone.
 
-Caveat printed in the output: NICT stored labels are themselves
-`codex_accept_draft`, so "reproduce the stored label" on NICT is close to
-"reproduce draft_axes". AMI / Taskmaster / CHiME / HCRC stored labels are
-`ai_draft_needs_human_review` (also draft_axes output). None of the stored
-labels are independent human labels. This experiment measures internal
-consistency, not correctness.
+Caveat: the stored labels for AMI / CHiME / HCRC / Taskmaster ARE draft_axes
+output verbatim; NICT stored labels are `codex_accept_draft` (draft_axes with
+a per-user Formality/Energy edit on ~208/567 rows). None are independent
+human labels. This measures internal consistency, not correctness.
 
 No human labels created. Reserved pool not opened. dev-200 not used here.
 
@@ -211,11 +212,11 @@ def main() -> None:
         run_slice(f"held-out {src}", pairs)
 
     print()
-    print("Interpretation:")
-    print("  student~stored high + (from Day 1) student~human low  -> supervision ceiling")
-    print("  student~stored low  vs draft_axes~stored high         -> representation limit")
-    print("  NICT stored labels are codex_accept_draft, so student~stored there is")
-    print("  partly circular; weight the AMI / Taskmaster / CHiME rows more.")
+    print("Interpretation (directional, not a threshold -- see docs/ai-collab/DECISION.md 4b):")
+    print("  draft_axes~stored == 1.000 for AMI/CHiME/HCRC/Taskmaster: the stored label")
+    print("  IS draft_axes output, so 'student reproduces stored' there means 'student")
+    print("  reproduces draft_axes'. Low student fidelity = representation loses signal;")
+    print("  it does NOT by itself say automated labels cannot help.")
 
 
 if __name__ == "__main__":
