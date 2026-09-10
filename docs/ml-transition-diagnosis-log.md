@@ -470,3 +470,166 @@ Humor 전량 0은 실수(축 누락) 가능성이 높다. Flash-Lite NICT Humor 
    same-text 재학습 비교. (A면) hybrid 설정 고정 + 배포 어댑터.
 5. frozen 후보 → 예약 pool 176×2 사람 평가 → `final_gate` + `gate4_reproduction` →
    사용자 승인 → 전환.
+
+---
+
+후속 기록: §4의 재검수 진행 상황과 §9의 다음 단계 이후에 완료한 5축 재평가 기준·출처·검증 결과를 아래에 통합했다. 점수 파일 반영은 완료했으며, 기존 진단 지표의 재계산은 아직 수행하지 않았다.
+
+## 10. reviewer-01 100문장: 연구 참고 5축 재평가 기준
+
+대상은 `gold-0101`~`gold-0200`이다. 현재 발화만 평가하며, 기존 점수와 비교하는 재평가다. 독립 블라인드 검수나 검수자 간 일치도를 측정한 결과가 아니다. `reviewer_id`는 원래 검수 묶음의 식별자다.
+
+### 축별 적용 기준 요약
+
+| 축 | 적용한 기준 |
+|---|---|
+| Formality | 직접 요청·완곡한 요청·격식 있는 표현 구분 — [격식성 연구](https://aclanthology.org/Q16-1005/), [정중함 연구](https://aclanthology.org/P13-1025/) |
+| Energy | 긍정·부정과 감정의 강도를 구분 — [각성도 연구](https://pdodds.w3.uvm.edu/teaching/courses/2013-01UVM-300/output/files/2013/warriner2013a.pdf) |
+| Intimacy | 거래 정보·취향 공개·관계에 대한 감정 구분 — [친밀성 연구](https://aclanthology.org/2020.emnlp-main.428/) |
+| Humor | 감탄과 농담 의도·익살을 구분 — [유머 평가 연구](https://aclanthology.org/2021.semeval-1.9/) |
+| Curiosity | 행동 요청·안부·정보 질문·설명 탐색 구분 — [호기심 연구](https://www.cmu.edu/dietrich/sds/docs/loewenstein/PsychofCuriosity.pdf) |
+
+### 공개 자료와 적용 범위
+
+| ID | 공개 자료 | 확인한 내용 | 이번 평가에 적용한 판단 |
+|---|---|---|---|
+| F1 | [Pavlick & Tetreault (2016), An Empirical Analysis of Formality in Online Communication](https://aclanthology.org/Q16-1005/) §3.1–3.3 | 문장 격식성은 정도 차이가 있고 장르에 영향을 받는다. 원 연구는 −3~3 척도를 사용했다. | 문장 전체의 말투를 비교한다. 학습자 문법 오류나 머뭇거림을 무례함으로 해석하지 않는다. |
+| F2 | [Danescu-Niculescu-Mizil et al. (2013), A computational approach to politeness with application to social factors](https://aclanthology.org/P13-1025/) §3, Table 3 | 간접 요청, could/would, 감사 등은 정중함과 관련된다. 표현의 위치와 조합도 중요하다. | 프로젝트의 대화 중심 Formality 정의에 맞춰 직접 요청·일반 요청·완곡한 요청을 구분한다. 정중함과 격식성이 완전히 같은 개념이라는 뜻은 아니다. |
+| E1 | [Warriner, Kuperman & Brysbaert (2013), Norms of valence, arousal, and dominance for 13,915 English lemmas](https://pdodds.w3.uvm.edu/teaching/courses/2013-01UVM-300/output/files/2013/warriner2013a.pdf) Abstract, Method | 정서의 긍정·부정과 각성 수준은 구별되는 차원이다. 연구 대상은 개별 단어다. | Energy는 문장에 드러난 활성·강조 정도로 평가한다. 긍정 단어 개수를 더하거나 단어 평정치를 문장 점수로 환산하지 않는다. |
+| I1 | [Pei & Jurgens (2020), Quantifying Intimacy in Language](https://aclanthology.org/2020.emnlp-main.428/) §2–4 | 친밀성은 자기공개, 따뜻함, 언어적 표현 등에 걸쳐 나타나며 주제만으로 설명되지 않는다. 연구는 질문을 중심으로 한다. | 업무상 정보 전달·일상 취향 공개·개인적 경험·관계에 대한 따뜻한 표현을 구분한다. 평서문으로의 적용은 이번 평가의 확장이다. |
+| H1 | [Meaney et al. (2021), SemEval 2021 Task 7: HaHackathon](https://aclanthology.org/2021.semeval-1.9/) §3.2–3.4 | 유머 의도와 재미의 정도를 구분하며, 설정·반전이나 부조리한 내용 등을 단서로 사용했다. 평가자 간 유머 평정 차이도 다룬다. | 유머를 표현하는 단서를 먼저 확인한다. 감탄·친절·어휘 오류 자체는 유머 근거가 아니다. 약한 익살로도 읽히는 문장은 낮은 점수와 불확실성 근거를 함께 기록한다. |
+| C1 | [Loewenstein (1994), The Psychology of Curiosity: A Review and Reinterpretation](https://www.cmu.edu/dietrich/sds/docs/loewenstein/PsychofCuriosity.pdf) 정보 격차 관점 | 호기심을 자신이 알고 있는 것과 알고 싶은 것 사이의 격차와 연결한다. | 현재 발화가 정보를 얻으려는 정도를 평가한다. 행동 요청, 의례적 안부, 사실 질문, 설명·탐색 요청을 구분한다. 문장 점수나 아래 구간을 원 논문이 제시한 것은 아니다. |
+
+### 0~100 운영 척도
+
+아래 수치와 문장별 평정은 **이번 데이터용 판단 기준**이다. 논문이 이 문장에 부여한 점수도, 원 척도를 선형 변환한 값도 아니다. 정수 저장과 5점 단위 구분을 사용한다. 5점 차이는 검토 가능한 상대적 판단이며 통계적으로 검증된 정밀도를 뜻하지 않는다.
+
+| 축 | 낮은 구간 | 중간 구간 | 높은 구간 |
+|---|---|---|---|
+| Formality | 0–20 매우 편한 말투·슬랭; 25–35 구어적 도입과 단편 표현 | 40–50 중립적 일상 발화; 55–65 정중한 요청·감사 | 70–80 복수의 완곡·존중 표현; 85–100 매우 의례적·격식적인 발화 |
+| Energy | 0–15 명시적 저활성; 20–30 강조 없는 평이한 서술·질문 | 35–45 가벼운 관심·평가·강조; 50–60 뚜렷한 감탄·강조된 감사 | 65–80 강한 흥분·긴급성; 85–100 압도적인 고각성 표현 |
+| Intimacy | 0–5 비개인적 정보·업무 요청; 10–20 인사·협조·의례적 감사 | 25–40 취향·경험·개인적 감정 또는 구체적인 따뜻함; 45–60 관계에 대한 정서 표현·상당한 자기공개 | 65–80 취약성·애정·깊은 지지; 85–100 매우 깊은 정서적 친밀성 |
+| Humor | 0 유머 단서 없음; 5–10 약한 익살의 텍스트 단서는 있지만 문자적 해석도 유력 | 15–35 가벼운 놀림·과장·장난; 40–60 분명한 농담 구조 | 65–80 강한 유희성; 85–100 발화 전체를 지배하는 유머 |
+| Curiosity | 0 정보 탐색 없음; 5–20 행동 요청·수사 질문; 25–40 의례적 안부·불명확한 탐색 | 45–55 조건·가능성 확인; 60–70 명시적 사실·개인 취향 질문 | 75–80 비교·추가 탐색; 85–100 설명·이유·메커니즘을 적극적이고 확장적으로 탐색 |
+
+### 문장별 판정 절차
+
+1. 현재 문장의 발화 목적을 확인한다. 이전·다음 턴의 말투나 등장인물 정보를 가져오지 않는다.
+2. 각 축을 독립적으로 평가한다. Formality가 높다고 Intimacy가 자동으로 낮아지거나, Energy가 높다고 Humor가 자동으로 높아지지 않는다.
+3. 복합 발화는 정보 질문·감사·요청 등의 비중을 함께 본다. 동일 유형은 비슷한 점수를 주고 실제 표현 차이가 있을 때만 조정한다.
+4. 현재 문장에 없는 음량·속도·억양·농담 의도를 추측하지 않는다. 무표정한 음성이라고 가정하지도 않는다. Energy는 텍스트에서 읽히는 정도만 평가한다.
+5. 문법 오류, 반복, 전사 오류는 원문대로 보존한다. 정보가 불완전하면 근거에 불확실성을 적고 극단값을 피한다.
+6. 문맥을 반드시 사용해야 점수를 정할 수 있는 경우 `문맥 필요`로 기록한다. 이번 평정은 현재 문장만으로 제한했으므로 인접 턴을 근거로 한 점수는 없다.
+
+### 경계 사례
+
+- `Can you book it?`: 행동 요청이 중심이므로 Curiosity 15. 질문 형태만으로 90점을 주지 않는다.
+- `Who stars in the film?`: 명시적인 사실 질문이므로 Curiosity 65. 원인 설명이나 심화 탐색은 없다.
+- `I am doing great. How are you?`: 친근한 안부이므로 Intimacy 30, Curiosity 35. 개인의 실제 심리 상태까지 추론하지 않는다.
+- `Thank you very much ... I really enjoyed talking to you.`: 관계 자체에 대한 따뜻한 표현으로 Intimacy 55. 감사의 크기와 Energy를 같은 값으로 고정하지 않는다.
+- `Can you imagine that`: 수사적 놀람은 읽히지만 현재 문장 안에 농담의 내용이 없어 Humor 0. 앞선 5점에서 수정한다.
+- `it's safety but food is terrible`: 상반된 평가를 연결했지만 유머를 의도한 반전이라고 단정하기 어려워 Humor 0. 앞선 5점에서 수정한다.
+- `... reading books, listening music, singing songs and having a sleep`: 활동 나열 끝에 수면을 둔 가벼운 익살 가능성을 Humor 5로 평가한다. 단순 취향 목록으로도 자연스러우므로 확신이 낮은 경계 사례다.
+- `... sound divine ...`: 강한 칭찬은 있지만 장난이나 농담 구조는 없어 Humor 0. 앞선 5점에서 수정한다.
+
+### 파일 반영
+
+- `ml_transition_gold_humor_rereview_reviewer01.csv`: 기존 `prev_*`와 원문을 보존한다. Humor는 `reviewed_Humor`, 다른 축의 변경은 `reviewer_notes`에 `Formality 35로` 형식으로 기록한다. notes에는 모든 축의 짧은 판단 근거도 포함한다.
+- `ml_transition_gold_blind_review_200.csv`: reviewer-01의 최종 5축 점수와 동일 근거를 반영한다. reviewer-avg 100행은 그대로 둔다.
+- `ml_transition_gold_human_200.jsonl`: reviewer-01의 5축과 notes를 원본 검수 CSV에 맞춰 재생성한다. 해당 행의 `label_status`와 `labeler`는 `research_guided_rereview`로 구분한다. 기존 `human_reviewed_blind` 검증이 이번 평정에 새로 수행되었다는 의미를 남기지 않는다. reviewer-avg의 기존 정수 점수는 보존한다.
+- `ml_transition_gold_stratified_candidates_200.jsonl`: 후보·출처 파일로 그대로 보존한다. `axes: null`은 의도된 구조다.
+
+각 notes의 F/E/I/H/C는 위 축 순서이며, 근거 ID는 F1·F2/E1/I1/H1/C1에 대응한다. 이 문서의 기준은 이번 100문장에만 적용했다. 다른 검수자의 100행까지 같은 눈금으로 재평가한 것은 아니므로 전체 200행의 검수자 간 척도 일치가 검증되었다고 해석하지 않는다. 기존 평가 지표는 이전 라벨의 결과이며 이번 변경 후 지표를 재계산하지 않았다.
+
+### 반영 결과와 검증
+
+아래 변경 수는 이번 연구 참고 재평가 직전 파일과의 비교다. Humor는 앞선 임시 조정값과 비교했다.
+
+| 축 | 변경한 점수 수 / 100 | 최솟값–최댓값 | 평균 |
+|---|---|---|---|
+| Formality | 90 | 25–75 | 45.50 |
+| Energy | 77 | 20–55 | 35.25 |
+| Intimacy | 87 | 0–55 | 12.05 |
+| Humor | 4 | 0–5 | 0.05 |
+| Curiosity | 64 | 0–70 | 28.40 |
+
+총 500개를 검토하여 322개를 수정했다. Humor는 `gold-0132`만 5점이고 나머지는 0점이다. 현재 표본에 높은 점수의 근거가 없으므로 척도의 상단 구간은 사용하지 않았다. 낮은 Humor 분포 자체가 축 누락의 증거는 아니다.
+
+- 100개 ID와 500개 점수의 0–100 정수 범위를 확인했다.
+- 재검수 CSV·원본 CSV·최종 JSONL의 점수와 notes를 대조했다.
+- `prev_*`, 원문, 인접 턴, 출처 식별자, 후보 파일 및 reviewer-avg 100행을 보존했다.
+- 기존 `scripts/build_human_reviewed_axis_dataset.py`로 임시 파일을 생성하여 200행의 점수·notes·출처가 최종 파일과 일치함을 확인했다. 재평가 상태를 구분하는 `label_status`·`labeler`는 의도적으로 별도 유지했다.
+- 모델 재학습이나 분석기 성능 평가를 실행한 결과는 아니다.
+
+---
+
+## 11. reviewer-01 재검수 후 진단 재실행 (2026-09-11)
+
+reviewer-01의 100행(gold-0101~0200) 5축을 연구 참고 재평가한 뒤 gold-200을 갱신하고
+(dev-200 SHA-256 `998fce0f...`, reviewer-01 행 `label_status=research_guided_rereview`),
+Day 1 / 4 / 5를 재실행했다. reviewer-avg 100행은 손대지 않았다.
+
+**결론 요지 변화**: 재평가로 rule의 우위가 줄고(0.372 → 0.344), 격차가 좁혀졌다.
+Flash-Lite의 우위는 유지·강화됐다.
+
+### Day 1 재실행 (dev-200 전체, dev-group-purged 학습)
+
+| 분석기 | 이전 (재검수 전) | 재검수 후 |
+|---|---|---|
+| rule | MAE 14.54 / rho 0.372 | **MAE 12.53 / rho 0.344** |
+| ML (k5 bigram) | 14.97 / 0.284 | 13.33 / 0.288 |
+| hybrid (k5 bigram) | 14.28 / 0.391 | 12.16 / 0.377 |
+
+- MAE가 전반적으로 개선 (재평가 라벨이 모델 예측과 크기 면에서 더 근접).
+- clean-100: rule 0.348 / ML 0.307 / hybrid 0.382 (ML-rule 격차 0.04로 축소).
+- 출처별: NICT는 이제 **ML rho 0.351 > rule 0.255**. AMI(reviewer-avg, 미변경) ML 0.130 유지.
+  Taskmaster rule 0.327 / ML 0.196 / hybrid 0.311.
+
+### Day 4 재실행 (k/ngram, dev-200 전체)
+
+| config | ML MAE / rho | hybrid MAE / rho |
+|---|---|---|
+| k=7 unigram | 13.23 / 0.339 | 12.35 / 0.401 |
+| k=15 bigram | 13.21 / **0.362** | 12.36 / **0.408** |
+| rule | 12.53 / 0.344 | — |
+
+- **순수 ML(k=15 bigram) rho 0.362가 rule 0.344를 근소하게 상회** (재검수 전에는
+  ML 최고 0.350 < rule 0.372였음).
+- hybrid는 0.40~0.41로 여전히 최고 (기존 분석기 중).
+
+### Day 5 재실행 (Flash-Lite vs draft_axes vs 사람)
+
+| 축 | draft_axes rho | Flash-Lite rho | Flash MAE | Flash bias |
+|---|---:|---:|---:|---:|
+| Formality | 0.538 | **0.711** | 14.93 | +13.52 |
+| Energy | 0.310 | **0.698** | 6.93 | +0.79 |
+| Intimacy | 0.124 | **0.359** | 13.13 | +7.58 |
+| Humor | −0.003 | **0.201** | 7.59 | +6.83 |
+| Curiosity | 0.820 | 0.742 | 12.38 | +7.21 |
+| **MEAN** | **0.358** | **0.542** | **11.00** | |
+
+출처별 Flash-Lite 평균 rho: AMI **0.570** / NICT **0.440** / Taskmaster **0.728**.
+
+### 재검수 후 순위 (dev-200, 근사)
+
+| 분석기 | rho | MAE |
+|---|---:|---:|
+| draft_axes (교사) | 0.358 | 14.60 |
+| rule | 0.344 | 12.53 |
+| 순수 ML (k=15 bigram) | 0.362 | 13.21 |
+| hybrid (k=15 bigram) | 0.408 | 12.36 |
+| **Flash-Lite 직접** | **0.542** | **11.00** |
+
+**해석**: 갱신된 dev-200에서 Flash-Lite 직접 분석기가 여전히 결정적으로 앞선다
+(다음 후보인 hybrid보다 rho +0.13). 순수 ML도 rule을 근소하게 넘지만 hybrid에는 못
+미친다. reviewer-01 재평가는 rule을 절대적으로 낮췄고, ML 전환(경로 B) 근거를
+약화시키지 않았다.
+
+**주의**:
+- reviewer-01 재평가는 blind 아님 (진단 결과를 본 뒤). `label_status`로 구분.
+  최종 예약 pool 평가는 fresh blind 검수자로.
+- reviewer-01 Humor는 재확인 결과 거의 전량 0 (gold-0132만 5). 축 누락이 아니라
+  해당 표본(과제대화·학습자 인터뷰)에 유머가 희소한 것. dev Humor rho는 여전히
+  reviewer-01 절반에서 상수에 가까움.
+- Flash-Lite NICT Humor rho는 낮음(−0.24 수준) — Flash-Lite가 중립 학습자 발화에
+  Humor를 과다 부여하는 실제 약점.
