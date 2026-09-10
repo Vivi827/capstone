@@ -1,41 +1,48 @@
-# Current Task — 실행 계획 (Execution Planning)
+# CURRENT TASK — cycle 4: label strategy & calibration
 
-> 이전 두 사이클은 아카이브됨:
-> - `archive/2026-09-07-gold200-diagnosis/` — gold-200 teacher-label 진단
-> - `archive/2026-09-08-roadmap-review/` — ML 전환 9단계 로드맵의 Codex 방법론 검토
->
-> **이번 사이클의 근거 문서**: `archive/2026-09-08-roadmap-review/DECISION.md`
-> (ACTION 6개 + EVIDENCE NEEDED 6개 + AGREED/DISAGREED). 그 전략 결정을 바꾸는 게
-> 아니라, **구체적 실행 단계로 옮기는 것**이 이번 목표.
+## Goal
 
-## 목표(Goal)
+Converge on a concrete, ordered execution plan for the next ~2 weeks that:
+1. does NOT pre-commit to large-scale human labeling,
+2. maximizes what can be learned with zero or minimal new human labels,
+3. keeps an honest, independent human evaluation path alive,
+4. decides whether the 4x90 calibration runs now, later, or shrinks.
 
-`archive/2026-09-08-roadmap-review/DECISION.md`의 ACTION/EVIDENCE NEEDED를 실행 가능한
-단계로 구체화한다:
-- 사람 라벨링이 필요한 CSV 파일 3종의 정확한 사양(소스, 선정 방법, 축, 2인 채점 포맷)
-- 내가 병행할 코드 작업 3종(partial-label 학습 지원, bucket-sensitivity 분석, `_pearson` NA 처리)의 정확한 구현 범위
-- clean-candidate 격리(최우선)의 실행 방법
+## Round 2 지시 (Codex)
 
-## 진행 방식 (3단계, 무한 루프 금지)
+Read `docs/ai-collab/CONTEXT.md` and `docs/ai-collab/CLAUDE_REVIEW.md`
+(Claude's Round 1 response to your recommendation).
 
-1. **Claude Code (실행 계획 초안, done)** -> `CLAUDE_REVIEW.md`
-2. **Codex (실행 가능성/누락 검토)** -> `CODEX_REVIEW.md`
-3. **Claude Code (합의/불일치 정리 + 최종 실행 계획)** -> `DECISION.md`
+Your job this round:
 
-1·2단계는 코드를 수정하지 않는다. 읽기 전용 집계만 허용.
+1. Where Claude's Round 1 agrees with you, confirm or sharpen it.
+2. Where Claude pushes back, either concede or defend with a concrete,
+   checkable argument (name the file/script/number).
+3. Answer these directly, with a recommended default for each:
+   - (a) **Diagnosis-first plan**: list the specific zero-new-label
+     experiments on dev-200 worth running, in priority order, and for each:
+     what result would change the label-volume decision. Be concrete about
+     what "the teacher is the bottleneck" vs "the model is the bottleneck"
+     vs "text-only input is the bottleneck" would each look like in numbers.
+   - (b) **Alternative LLM labeling**: concrete design for "a different-method
+     LLM scoring vs the existing `draft_axes` teacher" comparison. Which
+     model, what prompt structure, how many items, how to measure bias
+     without calling AI-consensus a human label. Feasible under the
+     GCP-only / Gemini-2.5-Flash-Lite MVP constraint?
+   - (c) **first-40 as the pilot of human value**: exact before/after
+     protocol. What is the training set before, what is it after, what
+     metric on which dev split, what effect size would justify expanding
+     human labeling and what would kill it.
+   - (d) **Calibration now vs later vs smaller**: give a recommendation.
+     If "later", state the precise trigger. If "smaller", give the number
+     and the revised detection-probability it buys.
+   - (e) **Independent eval set**: if training labels are fully automated,
+     what is the minimum honest human evaluation that still supports a
+     "better at reading human tone" claim? Does the reserved final pool
+     (176/156) need human labels, and if so how many, by whom, when.
+4. Flag anything in the already-built Phase 2 artifacts that becomes wrong
+   or wasteful under a diagnosis-first plan.
 
-## Round 2 지시 (Codex용)
-
-`CONTEXT.md`, `CLAUDE_REVIEW.md`, `archive/2026-09-08-roadmap-review/DECISION.md`,
-`archive/2026-09-08-roadmap-review/CODEX_REVIEW.md`를 읽고, `CLAUDE_REVIEW.md`의
-실행 계획에서:
-
-- CSV 사양의 결함 (소스 선택이 최종 test pool을 오염시키는지, blind 처리 누락, 2인 채점 포맷이 개인 점수를 실제로 보존하는지)
-- 코드 작업 범위가 이전 DECISION.md의 결정과 어긋나는 부분
-- 실행 순서의 문제 (격리 전에 후보를 뽑아 오염시키는 등)
-- partial-label 구현 접근(축별 독립 vs 공유 feature+축별 이웃 필터)의 트레이드오프
-- bucket-sensitivity 재구성이 "원래 bucket 복원"으로 과대 표현되는지
-- 빠진 검증/계약 (평가 comparator 고정, source-group bootstrap, gate #4 그룹 예약)
-
-을 찾아 `CODEX_REVIEW.md`에 작성한다. 실제 repo 데이터로 검증 가능한 주장은 검증한다.
-아직 코드는 수정하지 않는다.
+Write your response to `docs/ai-collab/CODEX_REVIEW.md` ONLY. Do not modify
+any other file. Do not commit, push, or reset git state. Verify claims
+against real repo data where checkable rather than asserting.

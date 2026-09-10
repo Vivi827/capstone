@@ -1,126 +1,188 @@
-﻿# Codex Round 2 — 실행 계획의 방법론·실행 가능성 검토
+# CODEX_REVIEW — Round 2: adversarial methodological review
 
-2026-09-10. **방향은 유지하되 A1, B/C1, C2, C4의 계약을 보완한 뒤 실행해야 한다.** 가장 큰 새 발견은 NICT provenance를 실제로 복구할 수 있다는 점이다. 현재 파일 기준 최종 후보는 기존 학습 그룹만 제외하면 202행, 이미 분석한 dev 그룹까지 제외하면 176행이다. 이는 최종 시험의 충분성이나 대표성을 보장하는 숫자가 아니다.
+2026-09-10. **Recommendation: diagnosis first; reduce calibration to 30 items × two reviewers before the first40 human-value experiment. Hold 4×90, bulk labeling, and the E/H pilot.** Claude's main direction is sound, but the evidence does not identify a single teacher bottleneck and the proposed experimental order postpones a necessary measurement check too far.
 
-검증 범위: CONTEXT, CURRENT_TASK의 Round 2 지시, 현재 CLAUDE_REVIEW, 2026-09-08-roadmap-review의 DECISION/CODEX_REVIEW, 관련 Python 구현과 실제 JSONL/CSV를 읽었다. `python -B -`로 메모리 내 집계와 기존 순수 함수의 재적용만 수행했다. 모델 재학습, 신규 라벨 생성, 최종 후보의 예측/점수 검토는 하지 않았다. 이 리뷰 이외의 파일 및 git 상태를 변경하는 명령은 실행하지 않았다. 기존 성능 표는 이번에 재평가한 수치가 아니다.
+Only this review file was changed. The reserved final-pool file and reservation audit were not opened, and no reserved predictions/labels were inspected. No labeling API was called. Numerical checks below ran in memory with `python -B` against existing non-reserved data. This document proposes development decisions; it does not amend the acceptance gate, authorize runtime changes, or manufacture human labels.
 
-## 1. [최우선] A1: NICT 132개는 더 이상 전부 unknown으로 둘 필요가 없다
+## 1. Findings supported by repository checks
 
-`sample_nict_jle_label_candidates.py`는 원본 JSONL을 순회하며 1-based `source_line`을 저장한다. 실험 학습셋의 NICT 600행 각각을 `nict_jle_learner_utterances.jsonl`의 `source_line - 1` 위치와 대조한 결과 **600/600 발화가 정확히 일치**했다. 해당 원본 행에는 `source_group`, `source_record_id`, `source_file`이 있으며 학습 그룹 470개를 복구할 수 있다. 후보의 line과 학습의 line을 직접 비교하는 대신, **학습행 → 원본행 → 그룹**으로 연결해야 한다. 후보 NICT 행에는 이미 그룹이 있다.
+### High: 100/200 dev rows share training groups; annotation conditions also differ
 
-아래는 gold-600에서 dev-200의 발화를 뺀 400행을 대상으로 양쪽 모두 `source:source_group` 형태로 비교한 결과다.
+Using `scripts/reserve_ml_transition_final_pool.py::recover_nict_training_groups` and `training_group_set`, I recovered **600/600** NICT training rows, representing **470 groups**. Comparing their canonical provenance and the other training groups with `ml_transition_gold_human_200.jsonl` gives:
 
-| 소스 | 남은 행 | 기존 학습 그룹 중복 | 학습 그룹 미중복 행 / 그룹 | 학습 및 dev 그룹 모두 미중복 행 / 그룹 |
-|---|---:|---:|---:|---:|
-| AMI | 133 | 128 | 5 / 2 | 1 / 1 |
-| NICT | 132 | 51 | 81 / 70 | 70 / 59 |
-| Taskmaster | 135 | 19 | 116 / 106 | 105 / 96 |
-| 합계 | 400 | 198 | 202 / 178 | 176 / 156 |
-
-**수정 요구:** A1의 `group_key`를 raw `source_group` 문자열 집합과 비교한다고 문자 그대로 구현하면 접두사 차이 때문에 중복을 놓친다. 양쪽에 동일한 canonical key를 사용하고, 누락 provenance에는 발화 fallback을 clean 증거로 쓰지 않는다. NICT line join에는 파일 hash, 범위 검사, utterance 일치 검사를 붙여 실패 시 unknown으로 남긴다. 현재 600/600 성공은 현재 원본 snapshot에 대한 결과이며 원본 재추출 후에도 자동 성립한다고 가정하면 안 된다.
-
-202행도 전부 새 최종 test는 아니다. **26행은 dev-200과 그룹이 겹친다.** 이미 반복 분석한 dev와 독립적인 acceptance/재현 검증이 목적이면 176행/156그룹을 출발점으로 삼는다. 실제 미노출 이력까지 증명한 것은 아니므로 manifest에 `train_overlap`, `dev_overlap`, `provenance_verified`, `exposure_status`를 구분한다. 제외된 198행도 이유와 함께 감사용 manifest에 남긴다.
-
-예약은 행 목록뿐 아니라 **그룹 전체**에 적용해야 한다. 학습/마이닝/검수의 모든 입구와 인접 발화도 검사한다. 이 156그룹을 최종 gate와 gate #4 재현용으로 어떻게 나눌지 지금 예약해야 한다. AMI는 엄격한 후보가 단 1그룹이므로 현재 풀만으로 두 시험 모두에서 AMI 일반화를 입증할 수 없다. 새 AMI 그룹 확보 또는 평가 범위의 명시적 제한이 필요하다.
-
-## 2. [높음] B1/B2: event-hint 20개는 여유 있는 quota가 아니며 소스와 완전히 교락된다
-
-직접 집계한 `annotation_events` 내 대소문자 무시 `laugh` 포함 결과:
-
-| 모집단 | 행 수 | laughter 후보 | 후보 그룹 수 | 소스 |
-|---|---:|---:|---:|---|
-| train reservoir 전체 | 1,200 | 23 | 22 | 전부 AMI |
-| train-120 발화 제외 | 1,080 | 20 | 19 | 전부 AMI |
-| train-120 그룹 전체 제외 | 887 | 14 | 13 | 전부 AMI |
-
-따라서 B1에서 남은 laughter 후보를 하나라도 소비하면 B2의 20개가 모자랄 수 있다. B1의 Humor 후보 6개를 어떤 규칙으로 뽑을지도 없다. B2에 그룹당 1개 제한을 적용하면 현재 발화 제외만으로도 20그룹을 채울 수 없다. **부족분을 중복 행이나 gold 후보로 메우면 안 된다.** event arm부터 내부적으로 예약하고 calibration과 공동으로 quota를 계산하거나, 부족 시 실제 개수로 줄이는 정책을 사전에 정한다. train-120과의 그룹 재사용은 dev/train 내부에서는 반드시 금지할 필요는 없지만 독립 pilot처럼 해석하지 말고 기록한다.
-
-event arm의 yield가 높아도 event 선택 효과인지 AMI 소스 효과인지 분리되지 않는다. AMI 내 비-event 대조와 소스별 결과를 함께 보고한다. random control의 모집단은 이미 Energy/Curiosity 층화·품질 필터를 거친 reservoir이며 자연 배포 분포가 아니다. 앞선 두 arm을 뽑고 남은 행에서 random을 고르면 “잔여 모집단 대조”임을 명시한다.
-
-B1/B2/B3 간 중복 처리, source/group quota, seed, 동점 처리, 후보 부족 처리까지 명세가 필요하다. B2의 disagreement는 Energy/Humor를 어떤 방식으로 합치는지(max, 축별 quota 등)도 고정해야 한다. B3는 공통의 “train-120 제외” 규칙의 명시적 예외로 적는다. 선택 이유 5종은 실제로 40/40/15/15/10개다. 파일의 첫 40개를 그대로 쓰지 말고, 40개에 대한 이유×소스 배분을 별도로 고정한다.
-
-train과 gold reservoir의 canonical group 교집합은 실제로 0이다. 세 소스가 양쪽에 모두 있으므로 calibration을 위해 gold reservoir를 열 필요는 없다. **train-only calibration 자체는 타당하다.**
-
-## 3. [높음] B/C1: 행 복제는 원점수 보존에 유용하지만 importer와 독립 채점 절차가 빠졌다
-
-`export_axis_review_csv.py::review_fields()`와 `build_human_reviewed_axis_dataset.py::REVIEW_AXES`는 `all`, `energy-curiosity`만 지원한다. B2의 Energy/Humor, B3의 Energy/Curiosity/Intimacy는 지원하지 않는다. importer의 `load_review_csv()`는 같은 `review_id`가 두 번 나오면 오류를 내고, `review_set`도 gold/train만 허용한다. 후보의 `review_partition=train`을 `calibration` 또는 `pilot`과 직접 비교하면 partition 검사도 실패한다. exporter에 slot과 set만 추가하는 C1 범위로는 끝까지 사용할 수 없다.
-
-**최소 계약:**
-
-- `dataset_partition=train/dev/test`와 `annotation_batch=calibration/pilot/first40`를 분리한다. sampling metadata는 검수자에게 숨긴 manifest에 보존한다.
-- batch 내 안정적인 `item_id`와 원본 candidate ID를 매핑한다. 40행 subset을 재번호화하여 기존 train-120의 ID에 잘못 연결하지 않는다.
-- 원점수 식별키는 `(batch_id, item_id, reviewer_slot)`이며 실제 `reviewer_id`도 필수다. A/B가 서로 다른 사람인지 확인하고, 누락·중복·범위·축 schema·발화/context 무결성을 검사한다.
-- A/B에게는 별도 blind view/export를 제공한다. 같은 CSV의 인접 복제 행에서 상대 점수가 보이면 독립 채점이 아니다. 선택 순서도 무작위화하고 seed를 보존한다.
-- 원점수는 덮어쓰지 않는다. aggregation/adjudication은 별도 산출물로 만들고 검수자 수, rubric version, 수정 이력을 남긴다. 평균만으로 불일치를 없애지 않는다.
-
-C1에는 exporter뿐 아니라 importer/aggregation의 round-trip 검증까지 포함해야 한다. 검수자가 보는 input 계약도 먼저 정해야 한다. 현재 gold CSV 200행 모두 previous/next 중 하나 이상의 context가 있지만 평가 모델은 utterance만 본다. 기본 제안은 이번 calibration/pilot도 현재 발화만 보여 주는 것이다. 이전 맥락을 포함하려면 모델 입력과 일치시키고, 미래 next turn이나 event/audio를 보여 준 평가는 별도 과제로 표시한다. 숨긴 selection_reason만으로 이 정보 차이는 해결되지 않는다.
-
-## 4. [높음] 이전 DECISION의 정밀도 결정과 calibration 이후 채점 순서가 빠졌다
-
-이전 EVIDENCE NEEDED #5의 점수 정밀도 정책이 현재 C 범위에서 누락됐다. 원 gold CSV의 **175개 비정수 점수 셀**을 다시 확인했다. importer의 `int(float(value))`, ML loader의 `_validate_axes()`의 `int()`, 후보 선정기의 `load_model_examples()`의 `int()`가 각각 정밀도를 잃게 한다.
-
-사람 원점수/평균과 학습·평가 target은 소수점을 보존하고, 모델의 최종 정수 출력은 별도 정책으로 다루는 편이 타당하다. 기존 지표를 바꿔 부르지 말고 동일 dev에서 정밀도 전후 민감도를 구분한다. partial validator도 cast 전에 유한 수와 범위를 검사해야 한다. 이 결정과 importer 변경 없이 평균화 스크립트만 추가해서는 이전 결정을 이행하지 못한다.
-
-D3의 세 CSV 동시 전달과 D5의 마지막 rubric 고정은 이전의 **“calibration 끝난 뒤 first40 검수”**와 충돌할 수 있다. 후보와 빈 CSV를 미리 준비하는 것은 괜찮지만, 실제 B2/B3 채점은 calibration 불일치 검토와 rubric/input version 고정 뒤 시작해야 한다. calibration 도중 rubric이 바뀌면 pilot 결과를 버전별로 구분한다.
-
-48×5×2 + 60×2×2 + 40×3×2 = **960개 축 점수, 296 발화-검수 건**이다. 이는 148개의 서로 다른 발화를 쓴다는 조건부 계산이고 조정/재채점 비용은 별도다. 실제 두 검수자 확보는 repo만으로 확인할 수 없다. 1인+부분 중복으로 축소한다면 기존 2인 교차 채점 계획과 같은 증거라고 부를 수 없으며 중복 범위와 한계를 다시 명세해야 한다.
-
-## 5. [높음] C2: 공유 feature는 타당하지만 단순 이웃 필터/None으로 끝나지 않는다
-
-축별 별도 TF-IDF 모델은 필수가 아니다. **공유 feature + 축별 유효 label의 top-k**를 우선 구현하는 데 동의한다. 다만 현재 `predict()`는 전체 similarity를 정렬한 뒤 먼저 top-k를 자른다. 그 뒤 label 없는 이웃을 제거하면 더 먼 위치에 유효 label이 있어도 버린다. 반드시 전체 순위에서 해당 축의 유효 label을 필터한 뒤 k개를 선택하고 축별 분모를 계산해야 한다.
-
-human/draft 중복을 predict 시점에만 제거해도 `fit()`에서 두 문서가 document frequency/IDF에 이미 반영된다. 같은 발화 correction은 feature 문서 단계에서 한 번만 세고, 축별 label/provenance는 별도로 연결한다. 동일 문자열이라도 서로 다른 context/출처의 발화일 수 있으므로 correction 대상은 provenance ID로 먼저 식별하고, 정규화 텍스트 중복은 충돌 기록과 명시적 정책을 사용한다. 사람 A/B의 같은 우선순위 label은 먼저 집계/조정해야 하며 임의 행 순서로 하나를 고르면 안 된다.
-
-누락된 사람 축은 그대로 누락이다. 기존에 실제로 존재하는 draft label을 별도 provenance로 사용하는 혼합 실험과, human row의 빈 축을 draft로 채우는 행위를 구분한다. accepted-draft를 독립 blind human correction과 같은 신뢰도로 자동 취급하지 않는다.
-
-`None` 반환은 현재 배포 계약과 충돌한다. `AxisResult`는 5개 정수 필수이며 `MLAxisAnalyzer.analyze()`는 validation 실패 시 **5축 전체를 rule로 fallback**한다. 평가기의 hybrid 산술도 `None`을 더할 수 없다. 연구용 partial prediction API로 분리하거나, 배포 fit 시 모든 축의 coverage를 요구하는 adapter 정책이 필요하다. fallback이 섞인 점수를 순수 ML 성능으로 보고하지 않는다. “유효 label 없음”과 “similarity가 전부 0”도 구별한다. 현재 후자는 0.001 가중치로 임의 동점 이웃을 평균하므로 재현 가능한 tie/zero-similarity 정책이 필요하다.
-
-필수 검증은 top-k 밖 유효 label 회수, 중복 correction 추가 전후 IDF 불변, 미검수 축 누락, 원점수 정밀도, 축별 coverage와 adapter 동작이다. 공유 IDF는 모든 학습 발화를 활용하지만 source/draft 분포 영향이 남고, 축별 IDF는 label subset마다 거리 공간까지 달라진다. 후자는 별도 ablation이며 구현 선행조건은 아니다.
-
-## 6. [높음] C3: 현재 classifier 하나로 역사적 teacher를 복원했다는 결론은 낼 수 없다
-
-“bucket sensitivity analysis”라는 명칭과 classifier 사전 고정은 적절하다. 그러나 실제로 **NICT 전용 `scripts/sample_nict_jle_label_candidates.py::classify_bucket(text)`가 별도로 존재**한다. 이 함수는 NICT candidate-600의 저장 bucket과 600/600 일치한다. Claude가 제안한 generic `sample_real_speech_label_candidates.py::classify_bucket(row)`는 NICT 저장 bucket과 **132/600 불일치**한다.
-
-현재 `draft_axes(row)`를 저장된 bucket 그대로 적용하여 저장 draft axes와 비교한 결과도 다르다.
-
-| draft 파일 | generic classifier vs 저장 bucket 불일치 | 현재 draft_axes vs 저장 axes 불일치 행 |
+| Source | Training-overlapping dev rows | Non-overlapping dev rows |
 |---|---:|---:|
-| NICT 600 | 132 | 221 |
-| AMI 600 | 0 | 0 |
-| CHiME-6 600 | 2 | 0 |
-| HCRC 500 | 1 | 0 |
-| Taskmaster 500 | 1 | 0 |
+| AMI | 65 | 2 |
+| NICT | 28 | 40 |
+| Taskmaster | 7 | 58 |
+| Total | **100** | **100** |
 
-NICT 221행은 Formality/Energy가 달랐고, NICT human-600의 axes는 저장 draft-600과 600/600 같았다. 따라서 현재 함수가 역사적 학습 라벨을 전부 재현한다는 CONTEXT/진단 스크립트의 설명은 성립하지 않는다. 이 차이의 역사적 원인(버전 변경 등)은 이번에 확정하지 않았다.
+Dev-200 contains 161 canonical groups. Casefold/whitespace-normalized exact training/dev text overlap is zero; this does not eliminate conversation-group leakage. `ai/evaluate_axis_analyzers.py`'s `gold-holdout` branch merely loads train and gold separately, without enforcing group exclusions. Its “frozen” description is stale for this repeatedly analyzed dev set.
 
-C3 1단계에 sampler와 teacher의 **두 가지 재현 오차**를 포함한다. generic classifier만 적용한 결과는 하나의 가정 하에서의 민감도다. NICT 전용 규칙을 포함한 소스별 가정도 결과를 보기 전에 고정할 수 있지만, 좋은 성능을 보고 선택하면 안 된다. C3 마지막의 **“Curiosity 0.83 과장/축소 방향 확정”은 “명시한 가정과 현재 dev에서 변화 방향 측정”으로 낮춘다.** 원래 gold bucket도 없고 역사적 teacher와의 불일치도 있어 실제 원인이나 일반화 방향은 확정할 수 없다. 현재 diagnose 스크립트는 입력 경로가 고정돼 있으므로 두 variant를 메모리에서 명시적으로 비교하는 함수/CLI 범위도 필요하다.
+The non-overlapping 100 are a sensitivity slice, not a new independent test, and contain only two AMI rows. Also rerun comparisons with a common training set purged of **all dev-200 canonical groups**, recovering NICT provenance before filtering. Freeze membership across comparison arms.
 
-## 7. [높음] C4/A2: NA 제외 평균을 곧바로 gate에 쓰면 비교 대상이 달라진다
+All **200 rows** of `ml_transition_gold_blind_review_200.csv` have nonempty previous/next-turn context. Current inference and new review batches show only the current utterance. Availability does not prove reviewers used context, but equal information conditions have not been established. Historical gold cannot simply be renamed current-utterance-only gold.
 
-상수 입력의 rho를 NA로 표시하는 것은 맞다. 하지만 모델별로 NA 축을 제외한 평균은 서로 다른 축 집합의 평균일 수 있다. 예를 들어 ML이 어려운 Humor를 상수로 출력하면 4축 평균이 올라가고 hybrid는 5축 평균으로 불리하게 비교될 수 있다. 이는 gate #2/#3의 의미를 조용히 바꾸는 결과다.
+The reviewer/source confound is verified:
 
-진단 리포트에서는 유효 축, 공통 유효 축의 보조 평균, 표본/그룹 수를 표시하되, **필수 축의 rho가 미정의면 기존 5축 gate를 통과했다고 판정하지 않는다.** human target이 상수인 경우는 시험 정보 부족, model prediction만 상수인 경우는 모델 퇴화로 이유를 구분한다. MAE는 rho NA라는 이유로 제외하지 않는다. bootstrap 재표본에서 상수가 되는 경우도 NA 빈도와 CI 가능 여부를 보고한다.
+| Reviewer field | Source allocation | Humor ratings |
+|---|---|---|
+| `reviewer-avg` | AMI 67, NICT 33 | 76 zeros, 24 nonzeros |
+| `reviewer-01` | Taskmaster 65, NICT 35 | **100/100 zero** |
 
-`ai/evaluate_axis_analyzers.py`뿐 아니라 `scripts/diagnose_gold_vs_ai_draft.py`에도 별도의 `_pearson()`이 0.0을 반환한다. C3에서 그 함수를 재사용하면 같은 오독이 남는다. report 출력 외에도 평균, best-model 선택, gate 및 diagnostic 경로를 함께 점검해야 한다.
+NICT spans both regimes, so source and reviewer are not completely separated across the whole dataset. AMI and Taskmaster nevertheless remain confounded with reviewer regime. Pooled correlations cannot resolve teacher bias, annotation scale, and information mismatch. Report source × reviewer slices and NA correlations; shared rescoring is needed to resolve reviewer effects.
 
-A2에 comparator/paired group bootstrap/gate #4를 문장으로 넣는 것은 좋은 출발이지만 실행 명세는 아직 부족하다. 학습 파일 hash, rule 버전, k/ngram, 고정 기존 hybrid와 후보 연결 hybrid, 승인된 gate의 비교 상대를 지정한다. bootstrap은 모든 모델에 같은 그룹 재표본을 쓰며 source별·축별 차이와 유효 반복 수를 보고한다. CI 수준/반복 수/seed와 불확실할 때 보류하는 정책도 결과 전에 고정한다. 최종 평가 분포, 최종·재현 그룹 수, 새 5축 사람 라벨 예산을 별도 산정한다. 실험용 HCRC 포함 3,137행과 실제 전환 대상 학습 구성이 같다고 가정하지 않는다.
+### High: Claude's 338 / 938 / 3,137 comparison does not identify teacher versus capacity
 
-## Round 3에서 확정할 실행 순서
+Verified experimental-set composition:
 
-1. 원본 hash와 text 일치 검사로 NICT provenance를 복구하고, train/dev 노출을 구분한 그룹 manifest 및 최종/재현 그룹 예약을 먼저 확정한다. 176행을 충분한 test라고 약속하지 않는다.
-2. 점수 정밀도, 검수 input, ID/slot/partition, 집계·NA·평가 계약을 고정한다. B1/B2 후보 quota는 동시에 계산해 희소 event 후보 충돌을 막는다.
-3. exporter/importer 및 partial-label 지원, bucket/teacher 재현성, NA 처리를 구현·검증한다. 후보 준비는 병행 가능하나 실제 B2/B3 채점은 calibration 뒤에 시작한다.
-4. label yield/agreement를 소스·선택 경로별로 검토한 후 확장 여부를 결정한다. 나머지 train-80은 빈 CSV 준비는 가능하지만 채점/사용은 보류한다. Intimacy 전면 교체는 계속 보류한다.
-5. 이전 ACTION #5의 대문자 비율·반복 길이 feature ablation과 human-only/draft-only/혼합 학습곡선을 후속 항목으로 명시한다. 구현/선정/평가가 동시에 바뀌지 않도록 baseline을 고정한다. 별도 최종·재현 시험과 사용자 승인 전 기본 analyzer 전환 근거는 없다.
+- 338 seed rows: 110 `gemini_assisted`, 99 `gpt_assisted`, 99 `claude_assisted`, 30 `ai_generated`.
+- 600 NICT rows: `label_status=human_reviewed`, but `labeler=codex_accept_draft_per_user`.
+- 2,199 `ai_draft_needs_human_review` rows: CHiME 600, AMI 599, HCRC 500, Taskmaster 500.
 
-## 집계 재현 기준
+Thus the remaining 938 are not established independent human training labels. “Drop the AI drafts” obscures that provenance. Also, `draft_axes` is a deterministic lexical/bucket heuristic, not an LLM scoring call. A rubric-guided LLM is a different automation method, not simply more of the existing teacher.
 
-JSONL은 UTF-8-sig로 읽고, NICT 복구는 `raw_rows[source_line - 1]`와 학습 utterance의 정확 일치를 먼저 검증했다. group 비교는 양쪽 모두 `source + ':' + source_group`으로 수행했다. remaining은 gold-600에서 dev-200의 정확한 utterance 집합을 제외했다. strict 후보는 복구된 전체 학습 그룹과 dev 그룹을 모두 제외했다. event count는 `annotation_events`를 직렬화한 문자열의 case-insensitive `laugh` 포함 기준이며, 실제 태그는 laugh였다. 모델 점수나 사람이 채점하지 않은 label은 선정·복구에 사용하지 않았다.
+Deleting 2,199 rows simultaneously changes source coverage, label distributions, corpus size, IDF, neighbor support, and density. `TfidfKnnAxisRegressor.fit()` learns IDF from supplied rows and prediction chooses top-k neighbors. Fixed IDF alone would not remove changed-neighbor confounding.
 
-핵심 입력 SHA-256:
+I ran the proposed comparison with **k=5, word_ngram_max=2**, matching the quoted baseline:
 
-- `axis_dataset_combined_real_speech_experimental.jsonl`: `23051000c3c2c4e0c38a876de61973d156188ef151faad69fca18caf20ddc1e9`
-- `nict_jle_learner_utterances.jsonl`: `feb9ba1e4f955db77517a07c3007a9860bfb2b8f0f49d286ab7fdef262c24313`
-- `ml_transition_gold_candidates_600.jsonl`: `7d5b7c4538b23d7e6e5bf14de78d2e77c57ca2abd61ecb114ab32d0fbd2022a4`
-- `ml_transition_gold_stratified_candidates_200.jsonl`: `f295a4792d44864f5812eaef15d0b78f9d9d82d9a41f9466818cbd5338ce8cb4`
-- `ml_transition_train_candidates_1200.jsonl`: `057a98c315f230a601e997f55cbcae1a0c175743b16467fcca540b0c491dde70`
+| Training | Dev-200 MAE | Dev-200 mean rho | Non-overlap 100 MAE | Non-overlap 100 mean rho |
+|---|---:|---:|---:|---:|
+| Full 3,137 | 14.897 | 0.2796 | 16.028 | 0.2876 |
+| Seed 338 | 17.074 | 0.3184 | 17.348 | 0.3513 |
+| Seed + accepted NICT 938 | 15.456 | 0.2940 | 16.630 | 0.2638 |
+
+Deleting drafts improves pooled rank slightly but worsens MAE. The 938-row rank comparison reverses direction on the non-overlap slice. These exploratory point estimates have no confidence intervals. They do not support “teacher is the bottleneck, not data volume,” nor “more weak data makes it worse.”
+
+For stronger discrimination, change labels on **the same training texts**, with membership, representation, IDF, and k fixed. Separately change representation/k with labels and texts fixed. Keep source-matched size curves as another experiment, not a causal substitute.
+
+### High: calibration's claimed sampling method and probability guarantee are unsupported
+
+`scripts/build_calibration_pilot_sets.py::_take_by_hash` sorts **rows** by a hash of group plus utterance, then takes the earliest row from each unseen group. This is not uniform group sampling followed by random within-group sampling, as the contract states. Larger groups have more chances to receive an early hash.
+
+Actual eligible non-laughter pools after train-120 exclusion:
+
+| Source | Rows | Groups | Rows/group |
+|---|---:|---:|---|
+| AMI | 159 | 39 | 1–8 |
+| NICT | 322 | 242 | 1–7 |
+| Taskmaster | 355 | 321 | 1–3 |
+
+AMI laughter groups are explicitly excluded first. Accordingly, the calibration guarantee cannot cover all AMI candidates. The residual-arm shuffle is also ineffective because `_take_by_hash` immediately sorts its input again.
+
+`1 - 0.9^30 = 95.76%` is correct for 30 independent opportunities with event probability 10%; it does not prove this algorithm offers that guarantee. “Any pair among four reviewers differs by >20” is a different event from “the fixed A/B pair differs by >20.” Four scorers do not create four independent item samples.
+
+Before distribution, select unique groups directly with a fixed seed, then choose a random utterance per group. Define the eligible population and prevalence unit. Keep targeted rare cases separate from a probability-sampled calibration arm.
+
+### Medium: teacher drift is verified, but its causal scope is narrower than claimed
+
+I reproduced **132/600** generic-vs-stored bucket mismatches, **0/600** NICT-vs-stored mismatches, and **221/600** rows differing from current `draft_axes`. However, only Formality and Energy change: mean absolute differences **2.58 / 1.10**, maxima **7 / 3**. Intimacy, Humor, and Curiosity reproduce stored NICT values exactly.
+
+This establishes generator/stored-label mismatch, not which version is more human-accurate or why every ML axis is weak. Claude's “that is what produced the current ML weakness” is premature.
+
+Bucket sensitivity is important: direct-teacher Intimacy rho changes **0.09 → 0.29**, MAE **28.91 → 19.96**, with source-specific assignment. This is a direct-teacher comparison, not a measured trained-ML improvement. Do not count it as a student gain without controlled retraining.
+
+### Medium: several proposed improvements are only checks, and configurations matter
+
+- The quoted rule / ML / hybrid results reproduce as **14.535 / 14.897 / 14.262 MAE**, **0.3720 / 0.2796 / 0.3859 rho**, with full training and **bigrams**. Unigram full-training ML gives **15.310 / 0.2718**, its hybrid **14.581 / 0.3816**.
+- `load_default_axis_dataset()` defaults to `data/axis_dataset_week2.jsonl`, which contains **338 rows**, unless explicitly configured. The runtime adapter defaults to unigrams. The pilot builder uses these implicit defaults; the train-120 selector explicitly uses experimental training and bigrams. The pilot manifest lacks training hash/k/ngram, so its historical selection model is not established by that manifest.
+- The 3,137 rows contain **zero duplicate utterances** under casefold/whitespace normalization. Same-text dedup cannot explain this baseline's weakness. It matters later when merging reviewer rows: two scorers must not become two training neighbors.
+- The gold CSV contains **175 fractional cells** truncated in JSONL. Using recovered CSV decimals with the same bigram predictions changes MAE **14.897 → 14.8905**, with unchanged rho **0.2796**. Correct the precision path, but this measured effect does not explain the gap.
+- `_validate_partial_axes` still casts to `int`. `predict_partial` cannot recover lost target fractions. On full-label unigrams, unrounded predictions change MAE **15.310 → 15.3029**, rho **0.2718 → 0.2704**. Output precision and missing-axis supervision are distinct interventions.
+
+## 2. Direct answers and recommended defaults
+
+### (a) Diagnosis-first experiments in priority order
+
+Keep dev-200 for diagnosis/selection only; never train on its labels. Freeze configurations, canonical exclusions, hashes, and fixed rule/old-hybrid comparators. The experimental training SHA-256 checked here is `23051000c3c2c4e0c38a876de61973d156188ef151faad69fca18caf20ddc1e9`.
+
+1. **Measurement and leakage:** rerun original/decimal targets, explicit 338/3,137 and unigram/bigram configurations, source/reviewer slices, and common dev-group-purged training. Preserve historical results separately. The measured decimal effect is only 0.0065 MAE, so it gives no reason to expand labeling. A reversal after group purging would undermine the original label-volume rationale.
+2. **Teacher fidelity versus representation:** create a group-held-out split within training data and measure student agreement with stored weak labels without same-group neighbors. Separately measure current-teacher/stored-label mismatch. On dev, compare teacher/student with the same text and bucket policy. With labels fixed, test k={3,5,9}, unigram/bigram, and one case/repeated-punctuation ablation if the actual transcript/STT inputs retain those features. Fit nothing on dev labels.
+3. **Mixture/size curves:** retain the measured 338/938/full comparisons as mixture ablations. Add source-stratified group samples at 25/50/100% of weak data, five fixed seeds, and fixed-versus-refitted training-IDF sensitivity. Test HCRC exclusion separately for the transition-eligible recipe. Consistent gains from matched weak-data growth favor automated scale; simple source deletion cannot identify a bad teacher.
+4. **Same-text alternative supervision:** run (b); if promising, relabel a fixed eligible training subset with the alternative and compare students using old versus new labels on exactly those texts. Keep IDF, features, and k fixed. Alternative scores on dev never enter training. Direct teacher improvement alone does not prove distillation succeeds.
+5. **Input limitation audit:** inspect context availability, text signals, constant targets, and conflicting targets for identical text where available. Analyze source/reviewer/event metadata after prediction, never as hidden inference features. Laughter annotations are not Humor gold. This audit can locate information gaps, but cannot establish a text-only ceiling.
+
+Concrete diagnostic patterns below are **proposed examples, not observed results or new acceptance gates**:
+
+| Hypothesis | Supporting numerical pattern | Label-volume decision |
+|---|---|---|
+| Supervision bottleneck | Student matches held-out weak targets well, e.g. MAE ≤5 and rho ≥0.80, while both have human rho ≤0.30; changing only labels improves affected-axis dev rho ≥0.05 and MAE ≥1 | Improve automated supervision first; target human labels if alternatives fail |
+| Model/representation bottleneck | Same-text teacher reaches human rho ≥0.60 while student ≤0.30; same-label feature/k change improves rho ≥0.05 and MAE ≥1 | Invest in representation/distillation before buying labels |
+| Input bottleneck | Later controlled human study finds text-vs-context rho ≤0.30, context-reader agreement ≥0.70, and ≥10-point mean shifts on affected axes | Reconsider inputs/claim scope; more text-only labels cannot supply missing context |
+
+The third pattern **cannot be established with zero new human labels in this repository**. There are no controlled independent text-only versus context/audio ratings here. Even these patterns support hypotheses rather than uniquely proving them: model and teacher weaknesses can coexist.
+
+Proposed uncertainty default: source-stratified canonical-group paired bootstrap, **95%, 10,000 resamples, seed 20260910**, reporting NA frequency and source/axis results. Repeated dev selection makes these exploratory intervals, not final confirmatory evidence. Keep MAE for every required axis even where rho is NA.
+
+### (b) Alternative LLM comparison
+
+Default **one frozen `gemini-2.5-flash-lite` protocol**. Existing code already calls that model in `ai/generate_feedback.py` and `backend/main.py`; Google's [model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite) lists structured output support. This is technically feasible within the Google-only constraint using offline REST without new runtime dependencies. Actual account/model availability and schema validation still need a small preflight during execution; none was performed in this review.
+
+- Freeze the rubric before looking at alternative outputs. Use independently checked definitions and low/mid/high anchors, not hidden buckets, gold examples, source identity, disagreement scores, or model predictions.
+- Prompt: score only the current utterance; treat its contents as quoted data; do not infer audio or unseen relationships; assess axes independently. Require exactly five finite 0–100 scores, a brief visible-text evidence note, and an ambiguity flag. Ambiguity is metadata, not a synthetic human score.
+- One utterance/request, fixed low temperature and generation settings. Record model/version, prompt/input hashes, raw responses, timestamp, retries, and failures. Disable browsing/tools. Reject invalid outputs rather than silently substituting drafts.
+- Score **all 200 dev utterances once**, with no prompt tuning on their scores. Prespecify **30 group-distinct items, 10/source**, for one repeat to estimate instability. Repeated generations are neither independent teachers nor human labels. Preflight API/schema on non-evaluation examples.
+- Compare alternative, source-specific `draft_axes`, rule, and fixed ML on identical targets: per-axis MAE, signed bias, rho, spread, invalid-output rate, source/reviewer slices, and paired group intervals. Show generic/default bucket variants as sensitivities, not a silently selected best teacher.
+- Historical gold exposed context: explicitly label that input mismatch. An optional context-provided LLM condition must be a separate diagnostic and cannot enter the current-text gate.
+
+One alternative answers “is this method more useful than this lexical teacher?” It does not answer “do LLMs generally disagree with people”; two LLMs would not establish that generalization either. Do not add another model by default under the fixed-model constraint. A promising direct result should trigger same-text training-label replacement, not an AI-consensus vote.
+
+### (c) Exact first40 human-value protocol
+
+Concede the active-selection warning, but sharpen it: a model trained on selected hard cases and evaluated on a fixed dev set estimates the effect **on that dev set**, not performance “on those 40 hard cases.” Scoring the 40 training cases themselves would be resubstitution.
+
+Existing first40 allocation is 13 Energy disagreement + 13 Curiosity disagreement + 5+5 extremes + 4 random controls. Four residual controls are not a useful independent random-selection arm.
+
+1. After zero-label experiments and calibration, freeze **B**, the chosen baseline's rows after canonical dev-group purging, hyperparameters, preprocessing, and provenance. Record actual resulting row count/hash; do not call a filtered set 3,137. Do not retune k or mixtures after seeing the human experiment.
+2. Two independent humans score the **same 40 E/C/I items**. Preserve raw scores, average with decimals, and use a third blind adjudicator for >20-point gaps. Aggregate one training row/item; missing F/H remain missing.
+3. Compare **B**, **B + S with frozen automated E/C/I labels**, and **B + identical S with human E/C/I labels**, where S is the 40 texts. Use identical B+S-derived IDF/vectors, k, per-axis eligible-neighbor logic, and rounding for the two addition arms. The automated arm is a separately tagged experimental control, never a fill for missing human axes. Replace rather than duplicate any identical training text's evaluated-axis supervision.
+4. Keep F/H predictions from B for this E/C/I experiment. Refitting shared IDF on partial-label texts otherwise changes even unreviewed F/H geometry. Use explicit per-axis handling or frozen F/H models to avoid this hidden treatment.
+5. Evaluate on **dev-200**, with the common B purged of all its groups. Primary: E/C/I macro MAE/rho, all three axis deltas, source/reviewer slices, and paired group intervals. Show the original non-overlap-100 sensitivity and five-axis guardrails against fixed rule/old hybrid. Never evaluate training/calibration items as held-out gains.
+6. Default: defer the extra random arm until a positive signal justifies testing selection policy. Then draw **20 new group-random eligible texts**, independently of model scores, excluding dev/calibration/pilot/first40 and reserved groups. Compare 20 prespecified active texts versus those 20 random texts with equal E/C/I annotation and automated controls. Comparing 40 active with 20 random confounds policy with budget.
+
+**Proposed expansion trigger, not a replacement acceptance gate:** human versus same-text automated control reduces E/C/I macro MAE by **≥1.0** and raises macro rho **≥0.05**, with paired 95% intervals excluding no improvement in the corresponding directions; no evaluated axis worsens by >1 MAE or >0.03 rho. It should also improve over B itself and not be solely a source/reviewer artifact. If satisfied, annotate at most the **remaining 80**, then reassess the learning curve; do not authorize thousands.
+
+Stop expanding this recipe if gains are <0.2 MAE and <0.01 rho **and intervals exclude the worthwhile effects above**. Wide intervals spanning worthwhile benefit and harm mean **inconclusive**, not “human labels never help.” If new human labels scarcely change predictions, inspect how often those 40 rows enter top-k neighborhoods. Low intervention strength in 3,137-row kNN is not evidence against human judgment generally.
+
+### (d) Calibration now/later/smaller
+
+Default **smaller, before first40**. Claude's “human-value probe, then decide calibration” conflicts with contract §7's calibration/rubric prerequisite. Conversely, an honest human eval does not logically require a separate four-person 90-item calibration. Duplicate scoring measures disagreement; calibration changes shared interpretation. Neither independently establishes truth, and shared bias can survive perfect agreement.
+
+Use **30 items = 10/source × two scorers × five axes = 300 scores**, after fixing sampling and instructional anchors. Use the two intended primary evaluation scorers. Keep C/D available for blind adjudication; if they later become primary scorers, first qualify them on shared items.
+
+For a fixed pair's >20-point disagreement event with 10% prevalence and independent draws, revised detection is **`1 - 0.9^10 = 65.13%` per source**, versus 95.76% at 30/source. Simultaneous detection across three independent sources at exactly that prevalence is approximately **27.63%**, not 95%. For finite uniform sampling without replacement, use the hypergeometric calculation and actual eligible population. Neither formula transfers unchanged to the existing row-hash sampler or laughter-excluded AMI as a whole.
+
+This is a screen, not proof of equivalence. Inspect every >20 gap, per-axis signed/absolute differences, and notes. A source-axis mean signed gap >10 or repeated >20 gaps triggers discussion and fresh shared rescoring before first40. No observed gap does not prove agreement. Escalate toward 30/source if the project needs the 95%-per-source screen or persistent source-specific inconsistency warrants it. If the rubric changes, keep old items as calibration development; assess the revised rubric on fresh items rather than pool versions to claim success.
+
+### (e) Minimum honest independent evaluation
+
+Default for this existing pool: **all 176 reserved items × five axes × two distinct trained humans**, after model, rubric, input, comparators, exclusions, and analysis are frozen: **352 item-reviews / 1,760 scores**, plus third-person adjudication where needed. Retain individual ratings and report model agreement with each scorer as well as mean/adjudicated targets. Do not replace missing ratings with any teacher or consensus.
+
+Use the declared **106 final-gate + 70 reproduction** allocation. These counts and the single reference-only AMI item are from contract §2, not a new inspection of the pool. Gate4 must remain a separate untouched group set. Complete all tuning before either set's scores are disclosed; do not tune between final-gate and reproduction. Four complete scorers are unnecessary by default.
+
+The defensible claim is improved agreement with independent human judgments **for the specified input/rubric and sampled NICT/Taskmaster distribution**, conditional on the existing gate and uncertainty. These English, deliberately sampled corpora do not establish Korean/mobile-STT, natural-traffic, prosody, or AMI-wide performance. Sample size alone does not guarantee power or nonconstant Humor labels. Required-axis NA or wide intervals mean no demonstrated pass; obtain new independent evaluation data under a prospective plan, rather than relax the gate or invent signal.
+
+The 176×2 plan is a practical minimum for using this entire fixed pool with measured disagreement, not a universal sample-size theorem. Reserving unscored rows does not itself supply independent human evaluation, and dev-200 cannot replace it.
+
+## 3. Phase 2 artifacts: retain, defer, correct
+
+- **Retain** stable IDs, slot-specific blind exports/manifests, raw/adjudicated separation, and closed reservations. I verified train-1200 versus gold-600 canonical-group intersection **0**. Calibration/pilot/first40 have 90/54/40 distinct groups. Slot A score cells are empty in all three batches. Group disjointness depends on provenance and does not establish natural-distribution validity or eliminate semantic duplicates.
+- **Correct calibration sampling/probability language before distribution.** Smaller batches need coherent common-item manifests. Telling reviewers to stop after ten items in independently shuffled 90-item workbooks would select different subsets.
+- **Check instructional anchoring.** `export_calibration_workbook.py` calls examples real hand-labelled seed examples. Of eight displayed examples, seven match seed training texts; six reproduce seed scores exactly (five `gemini_assisted`, one `claude_assisted`). Another matching seed text has different displayed scores; one has no experimental-set exact match. This does not prove humans never checked them, but metadata does not establish independent human anchors. Human-check examples before using them to train reviewers or prompt the alternative teacher. Keep instructional examples out of evaluation.
+- **Do not call calibration a model-independent test.** Current experimental training overlaps 50/90 calibration groups, 29/54 pilot groups, and 19/40 first40 groups. This is acceptable for calibration/training, not held-out evaluation; it is not final-pool leakage.
+- **Defer pilot54.** Its 13 laughter groups and nine non-laughter controls are candidates, not mandatory annotation. Laughter is neither humorous intent nor an E/H gold score. Reducing calibration frees groups, so the nine-control allocation is contingent, not an immutable scarcity fact. Meeting/source and event selection remain confounds.
+- **Record selection-model provenance.** First40 and pilot builders have different model/data defaults. Do not reinterpret old disagreement scores as if generated by the newly chosen model. Any reselection must precede seeing labels and follow a prospective policy.
+- **Fix decimal handling before training on means.** Aggregation preserves floats; both full and partial ML validation still truncate. Partial-label support is not a complete decimal-preserving training path.
+- **Reconcile stale instructions in subsequent authorized execution.** Contract §11 still says “calibration 48” while §7/§12 say 90; workbook language mentions two reviewers while four files exist. None of those files was modified in this review.
+
+## 4. Concrete next-two-week order
+
+**Days 1–3:** freeze baseline/exclusion ledger; run group-clean measurement, teacher-fidelity, and small representation/mixture experiments. Preserve all tried variants. Do not spend the week on dedup/decimal hypotheses whose current effects are absent/tiny.
+
+**Days 3–5:** correct and run 30×2 calibration, check instructional anchors, and freeze the current-text rubric. Run the one-protocol Flash-Lite comparison after rubric stability. If scoring remains inconsistent, pause first40 at this prerequisite rather than purchase noisy labels.
+
+**Days 6–9:** execute bounded first40 with same-text automated control and neighbor-influence audit if prerequisites hold. Test alternative training supervision if direct teacher results warrant it. Keep E/H pilot and the optional random-policy arm deferred unless evidence specifically calls for them.
+
+**Days 10–14:** decide stop / inconclusive / at most 80 further labels by the prespecified evidence rules. Only if a model is ready, freeze everything and hand off 176×2 independent evaluation. Otherwise keep the pool closed beyond two weeks; a calendar deadline is not evidence for opening it.
+
+I agree with Claude on avoiding bulk-label presumptions, retaining independent human evaluation, rejecting AI consensus as gold, and requiring a user decision for an actual goal change. I reject the teacher-only causal conclusion and delaying all calibration until after first40. Reproducing a teacher may remain an auxiliary diagnostic without voiding the human acceptance gate; replacing that gate is a separate decision this review does not make.
