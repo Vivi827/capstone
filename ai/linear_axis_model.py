@@ -106,6 +106,7 @@ class RidgeAxisRegressor:
             w = [0.0] * n_feat
             b = sum(targets.values()) / len(targets)
             order = list(idx)
+            n_train = len(order)
             for _ in range(self.epochs):
                 rng.shuffle(order)
                 for start in range(0, len(order), self.batch_size):
@@ -121,8 +122,15 @@ class RidgeAxisRegressor:
                             gw[j] = gw.get(j, 0.0) + err * val
                     scale = self.lr / len(batch)
                     b -= scale * gb
+                    # Standard ridge SGD: the L2 penalty (l2/2 * ||w||^2 over the
+                    # full training set) applies to EVERY weight every step, not
+                    # only the features active in this batch -- otherwise rare
+                    # features are shrunk far less than frequent ones per step.
+                    l2_scale = self.lr * self.l2 / n_train
+                    for j in range(n_feat):
+                        w[j] -= l2_scale * w[j]
                     for j, g in gw.items():
-                        w[j] -= scale * (g + self.l2 * w[j] / len(batch))
+                        w[j] -= scale * g
             self.weights[axis] = w
             self.bias[axis] = b
         return self
