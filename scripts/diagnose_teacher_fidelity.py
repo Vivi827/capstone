@@ -22,9 +22,14 @@ Reading (directional only, NOT a pass/fail threshold -- cycle 4b DECISION):
   script alone.
 
 Caveat: the stored labels for AMI / CHiME / HCRC / Taskmaster ARE draft_axes
-output verbatim; NICT stored labels are `codex_accept_draft` (draft_axes with
-a per-user Formality/Energy edit on ~208/567 rows). None are independent
-human labels. This measures internal consistency, not correctness.
+output verbatim; NICT stored labels are also `codex_accept_draft_per_user`
+output -- verified byte-identical to the draft file on 600/600 rows, i.e.
+NOT an independent human edit despite the `human_reviewed` status field.
+The ~208/567 rows that differ from the CURRENT draft_axes() do so because
+the rubric/code changed after these labels were generated, not because a
+person edited them. None of the training labels anywhere in this dataset
+are independent human labels. This measures internal consistency, not
+correctness.
 
 No human labels created. Reserved pool not opened. dev-200 not used here.
 
