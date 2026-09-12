@@ -1,126 +1,67 @@
-# CLAUDE_REVIEW — cycle 4b: Day 1 results + Days 2-3 experiment design
+# CLAUDE_REVIEW — cycle 4c Round 1: self-audit before Codex check
 
-## 1. Day 1 results (scripts/diagnose_dev200_group_purge.py, committed 219ae06)
+I ran the B0-B4 experiment described in `CONTEXT.md` across this session.
+Before asking Codex to check it, here is my own list of what I am NOT
+confident is clean -- flagging these explicitly rather than waiting for
+Codex to find them.
 
-### 1.1 Group-leak magnitude
+## Things I already suspect are weaknesses
 
-| training | dev-200 MAE (bi) | dev-200 mean rho (bi) |
-|---|---:|---:|
-| full 3,137 | 14.897 | 0.280 |
-| dev-group-purged 2,940 | 14.966 | 0.284 |
+1. **B1's quoted rho (0.362) is a selected maximum, not a single a priori
+   run.** The k/n-gram sweep (`k in {3,5,7,9,15} x {1,2,3}-gram`) was run on
+   dev-200 directly, and I reported the best cell. The same is implicitly
+   true for B3a/B3b, which I ran with `k=15, bigram` for the kNN comparison
+   arms because that was the sweep's winner. This means B1 and the kNN
+   comparison arms are optimistically biased relative to a single
+   pre-registered configuration. B0 (rule) and B4 (Flash-Lite) do not have
+   this problem -- rule has no hyperparameters tuned on dev-200, and the
+   Flash-Lite prompt was frozen before scoring (I did not iterate the prompt
+   after seeing dev-200 results).
 
-Purge removes 197 rows (AMI 158 / NICT 33 / Taskmaster 6). Aggregate effect
-< 0.07 MAE, < 0.01 rho. The leak is real (100/200 rows, 69 groups) but does
-not explain ML's weakness. hybrid moves 14.262/0.386 -> 14.283/0.391.
+2. **Ridge hyperparameters (l2=1.0, lr=0.5, epochs=40, batch_size=32,
+   min_df=2, max_features=4000) were picked once, a priori, and never
+   varied against dev-200.** I believe this is clean but I have not written
+   down anywhere *why* those specific values, so it reads as arbitrary even
+   though it was not tuned.
 
-### 1.2 overlap vs clean split (purged bigram ML)
+3. **No confidence interval or significance test anywhere in this cycle.**
+   Every comparison above is a point estimate on n=200 (n=67-68 per source,
+   and n=100 or fewer once NA axes like Humor are dropped for a slice). I do
+   not know how much of B2 (0.408) vs B3b (0.480) vs B4 (0.542) is outside
+   noise.
 
-| slice | rule rho | ML rho | hybrid rho | ML MAE |
-|---|---:|---:|---:|---:|
-| overlap-100 | 0.274 | 0.268 | 0.330 | 13.80 |
-| clean-100 | 0.385 | 0.282 | 0.388 | 16.14 |
+4. **I have not re-verified, in this exact commit state, that the
+   dev-group-purge used for B1/B3a/B3b's training set is still leak-free.**
+   It was verified earlier in cycle 4b (`scripts/diagnose_dev200_group_purge.py`
+   asserts 0 overlap after NICT provenance recovery), and I have not changed
+   that logic, but I have not re-run the assertion since the reviewer-01
+   re-review changed dev-200's *labels* (not its rows/groups, so the
+   group-purge itself should be unaffected -- but this is exactly the kind
+   of thing worth an independent re-check).
 
-On genuinely held-out rows ML is clearly behind rule and hybrid on rank and
-worst on MAE. The leak was flattering ML slightly.
+5. **`ai/linear_axis_model.py` is new code (this session) and only checked
+   by inspecting its top-weighted features for face validity** (e.g.
+   "please"/"could"/"would" raise Formality, "hey"/"!" lower it) -- I did not
+   write a unit test for the gradient/update math itself, and there is no
+   existing test suite coverage for it yet.
 
-### 1.3 per-source (purged bigram)
+6. **B4's "cannot fully parallelize" latency claim** is based on reading
+   `backend/main.py`'s current `/api/chat` handler (axis result feeds
+   `compute_character` before the reply-generation call), not a measured
+   round-trip in the deployed app.
 
-| source | n | rule rho | ML rho | hybrid rho | rule MAE | ML MAE |
-|---|---:|---:|---:|---:|---:|---:|
-| AMI | 67 | 0.291 | 0.130 | 0.272 | 11.76 | 13.50 |
-| NICT | 68 | 0.292 | 0.355 | 0.368 | 16.12 | 14.67 |
-| Taskmaster | 65 | 0.345 | 0.216 | 0.330 | 15.73 | 16.79 |
+## What I am fairly confident holds
 
-ML only competes on NICT (its training-dominant source). Humor rho is NA for
-Taskmaster (all 65 Humor labels are 0).
+- The headline ranking direction (B0 < B1 < B2 < B3a < B3b < B4) reproduced
+  across two independent dev-200 states (before and after the reviewer-01
+  re-review), which is at least mild evidence it isn't an artifact of one
+  particular gold-200 snapshot.
+- B3b is a genuine capacity increase over B1/B3a on the SAME underlying
+  weak-label family in one case (B3a vs B1: same labels, different model,
+  B3a wins) -- so the model-family effect and the teacher-quality effect
+  were each isolated in at least one paired comparison.
+- No human labels were fabricated; B4's LLM output was never written into
+  dev-200 as if it were a human score.
 
-### 1.4 per-reviewer (purged bigram)
-
-- reviewer-avg (AMI 67 / NICT 33): rule rho 0.203, ML 0.247, hybrid 0.272
-- reviewer-01 (Taskmaster 65 / NICT 35): rule rho 0.395, ML 0.304, hybrid
-  0.397; Humor NA
-
-Reviewer and source are confounded (reviewer-avg is AMI-heavy). Cannot
-separate a reviewer effect from a source effect on dev-200 alone.
-
-### 1.5 Claude's reading (to be challenged)
-
-ML overfits NICT-style learner speech (2,199 AI-draft rows + 600 NICT
-accepted + seed) and does not generalize to meeting (AMI) or task-dialog
-(Taskmaster) speech. This points to training-data coverage and/or the kNN
-representation, more than to teacher-label error. Not yet confirmed -- could
-be confounded with AMI utterance length / genuine Humor sparsity.
-
-## 2. Days 2-3 experiment design (for Codex review)
-
-All on the dev-group-purged common training set. dev-200 for evaluation only.
-Freeze: training SHA-256 23051000..., purged-row count 2,940, k, ngram,
-comparators (fixed rule, fixed old hybrid). NA-aware. Paired
-canonical-group bootstrap 95% / 10,000 / seed 20260910 where an interval is
-claimed.
-
-### E1 — teacher fidelity vs student capacity (the core discriminator)
-
-Inside the purged training set, make a group-held-out split (same
-`split_by_source_group` hash trick, or a fresh seed). Fit ML on the train
-part, predict the held-out part, and measure agreement with the **stored
-weak labels** (not human). Separately, run `draft_axes` on the same held-out
-part and measure its agreement with the stored weak labels.
-
-- If the student reproduces the stored weak labels well (say MAE <= 5,
-  rho >= 0.8) but both are far from human on dev (<= 0.30), the supervision
-  is the ceiling -> automating more of the same labels cannot help; a better
-  teacher or human labels are needed.
-- If the student cannot even reproduce its own training signal
-  (rho << teacher-vs-stored), the kNN representation is the limit -> invest
-  in representation before labels.
-
-Confound to name: the stored NICT labels are themselves `codex_accept_draft`
-(not independent), so "reproduces the weak labels" partly means "reproduces
-draft_axes". Report `draft_axes`-vs-stored on NICT (221/600 differ, F/E only)
-alongside.
-
-### E2 — same-text label swap (teacher quality, isolated)
-
-Take a fixed subset of purged training texts. Keep texts, membership, IDF,
-and k fixed. Fit ML twice: once with the stored labels, once with `draft_axes`
-recomputed with the correct per-row `sample_bucket`. Compare both students on
-dev-200. This isolates label quality from every size/coverage/IDF change that
-the 338/938/3,137 comparison confounds (Codex's Round 2 point).
-
-### E3 — representation sweep (labels + texts fixed)
-
-k in {3, 5, 9} x {unigram, bigram} on the purged training set, dev-200
-per-source. Also one feature ablation: strip capitalization and collapse
-repeated punctuation from BOTH training and dev inputs, refit, compare --
-but only after checking whether the real STT/transcript inputs preserve caps
-and punctuation (if they do not, the rule analyzer's caps/`!` signals are
-already dead in production and that itself is a finding).
-
-### E4 — source-stratified size curve (coverage, not causal)
-
-Group-stratified subsamples of the purged weak data at 25 / 50 / 100 % (5
-fixed seeds), seed + NICT-accepted held constant, evaluate per-source on
-dev-200. Consistent per-source gains from more matched weak data favour
-"automate and scale". Flat or AMI/Taskmaster-negative curves favour "the
-weak data does not transfer".
-
-### E5 — input-limitation audit (bounded, no new labels)
-
-For dev-200: count rows where the target is constant within an axis, where
-two dev rows have near-identical text but different human labels, and where
-the current-utterance-only text plausibly under-determines a label a context
-reader would give. This locates information gaps; it cannot prove a
-text-only ceiling without a controlled human study (out of scope now).
-
-## 3. Open questions for Codex
-
-- E1: is "reproduce the weak labels" circular enough on NICT to be
-  uninformative there? Should E1 be AMI/Taskmaster-only?
-- E2: is recomputing `draft_axes` with the correct bucket a meaningful
-  "better teacher", or just a different lexical heuristic? Is it worth doing
-  before the Flash-Lite comparison?
-- Shortest path to goal #2: if E1 says "supervision is the ceiling", does
-  that force human labels, or is a single strong LLM teacher (Flash-Lite,
-  rubric-guided, distilled) an acceptable justification for the gate given
-  goal #1?
+Please check all six items above, plus anything else that looks wrong,
+against the actual code and data.
