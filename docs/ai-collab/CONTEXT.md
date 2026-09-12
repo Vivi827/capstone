@@ -1,100 +1,76 @@
-# CONTEXT — cycle 4c: B1+ ridge-on-Flash-Lite-labels experiment review
+# CONTEXT — cycle 4d: closing the open items from cycle 4c's B0-B4 review
 
 ## Where this sits
 
-Cycle 4 decided: diagnose before committing to bulk human labeling. Cycle 4b
-ran Days 1-5 (dev-200 group-purge, teacher-fidelity, STT skew, k/ngram sweep,
-Flash-Lite-as-teacher comparison), corrected 3 of Claude's own overclaims
-along the way, and after a reviewer-01 Humor re-review, landed on:
+Cycle 4c (Codex Round 2, `docs/ai-collab/archive/` will hold it once archived)
+adversarially checked the B0-B4 experiment and found real problems, all
+verified by Claude against the code/data:
 
-  rule 0.344 < pure kNN ML 0.362 < hybrid 0.408 < ridge(draft labels) 0.439
-  < ridge(Flash-Lite labels) 0.480 < Flash-Lite called live 0.542
-  (dev-200 mean Spearman rho, dev-group-purged training, NA-aware)
+1. Ridge L2 regularization was batch-dependent, not standard -- **fixed** in
+   `ai/linear_axis_model.py` (commit `ec04458`). Rerun: ridge(draft) rho
+   0.439->0.428, ridge(Flash-Lite) rho 0.480->0.462.
+2. The claim "B4 (Flash-Lite live) cannot run in parallel with reply
+   generation" is false -- `_call_gemini_chat()` doesn't take the computed
+   axes/character, only a stored `character_name` string. **Retracted.**
+3. B3b (ridge trained on Flash-Lite labels) inherits Flash-Lite's Formality
+   over-scoring almost verbatim: Formality MAE 15.4-15.6 vs hybrid's 9.6.
+   **Not fixed.**
+4. B1-vs-B3a was not an isolated model-family comparison (ridge capped
+   vocab at 4,000 features vs kNN's 17,913). Claude has since re-run ridge
+   with the vocabulary matched exactly to kNN's 17,913 features
+   (`min_df=1, max_features=999999`): **rho 0.4202** (vs kNN 0.3624, vs the
+   capped-vocab ridge 0.4279). The model-family effect survives a matched
+   vocabulary. This item is now addressed, pending your check.
+5. The quoted B1 number (rho 0.362, k=15/bigram) is the max of a 15-cell
+   sweep run directly on dev-200 -- selection-optimistic, unquantified size.
+   Claude is running a nested-selection check now (inner group-holdout
+   inside the purged training set, select k/ngram there, evaluate once on
+   dev-200) -- result pending, will be added to this file or reported
+   separately once done.
+6. After the L2 fix, Claude reran the source-group-stratified bootstrap
+   (script now committed: `scripts/bootstrap_b0_b4_comparison.py`,
+   commit `6c322ce`). **New finding, not yet reviewed by you:**
 
-This cycle (4c) is a fresh adversarial check specifically on the newest
-experiment -- B0-B4 below -- before it goes into a report the user will
-share with teammates to make a real decision (whether to move off `rule`,
-and to what).
+   | Paired difference | Observed | 95% CI |
+   |---|---:|---|
+   | B3a (ridge, weak labels) - B2 (hybrid) | +0.0197 | [-0.0211, +0.0684] -- crosses zero |
+   | B3b (ridge, Flash-Lite labels) - B2 (hybrid) | +0.0542 | [-0.0162, +0.1320] -- crosses zero |
+   | B4 (Flash-Lite live) - B3b | +0.0799 | [+0.0299, +0.1341] -- clearly positive |
 
-## User goals (fixed, ranked)
+   **Neither ridge candidate is statistically distinguishable from hybrid
+   on this dev-200 bootstrap.** Only the live Flash-Lite call is confidently
+   better than what came before it. This is a materially weaker claim than
+   the cycle 4c writeup implied even after its corrections.
+
+## Still open (this round's focus)
+
+- **Formality bias in B3b (item 3):** no fix attempted yet. The direct fix
+  (subtract a bias estimated from dev-200) would itself be new dev-200
+  leakage. Need a recommendation: leave uncorrected and report as a known
+  defect, find an independent calibration source, or something else.
+- **Nested k/ngram selection result** (item 5): pending, will share once the
+  background run finishes.
+- **Deployment adapter for B3b:** still doesn't exist. Given item 6's
+  bootstrap result, building it now may be premature -- worth your opinion
+  on whether it's still worth building given the current evidence.
+- **Reviewer/source confound** (from cycle 4c item 9): unresolved by
+  available data; likely stays unresolved until a same-text multi-reviewer
+  round exists (ties to the still-paused calibration work).
+
+## User's fixed goals (unchanged)
 
 1. Minimize human labeling work.
 2. Transition the runtime analyzer to ML.
 3. Every step must have a sound, documented justification.
 
-## The B0-B4 experiment under review
+The user has asked Claude to keep iterating with you and flag anything that
+needs their explicit approval (methodology choices with real tradeoffs,
+not routine execution).
 
-All on the SAME held-out set (`ml_transition_gold_human_200.jsonl`, 200 rows,
-dev-group-purged training so no canonical group in dev-200 appears in
-training -- NICT provenance recovered via `source_line` first). All
-comparisons NA-aware (Spearman undefined when a target column is constant is
-reported as n/a, never averaged in as 0).
+## Files this round may read
 
-- **B0 — rule-based baseline.** `ai.analyzers.RuleBasedAxisAnalyzer`. No
-  training data.
-- **B1 — nearest-neighbor regressor on the existing weak labels.**
-  `ai.ml_baseline.TfidfKnnAxisRegressor` (k=15, word bigrams), trained on the
-  2,940-row dev-purged slice of `axis_dataset_combined_real_speech_experimental.jsonl`.
-  The weak labels for AMI/CHiME6/HCRC/Taskmaster in that file are the
-  deterministic output of `scripts/draft_label_nict_jle_candidates.py::draft_axes()`
-  verbatim (verified rho 1.000 / MAE 0.000 reproduction on a held-out split);
-  NICT differs on 208/567 rows (Formality/Energy only, human-edited).
-- **B2 — hybrid.** Per-axis average of B0 and B1.
-- **B3 — a dependency-free ridge (L2-regularized linear) regressor**,
-  `ai.linear_axis_model.RidgeAxisRegressor`, same TF-IDF feature pipeline as
-  B1, trained by mini-batch SGD (no numpy/sklearn). Run twice:
-  - B3a: trained on the SAME weak labels as B1 (`draft_axes` provenance).
-  - B3b: trained on labels from B4 (below) instead.
-- **B4 — a large language model called directly as a scorer**,
-  `gemini-2.5-flash-lite` via `scripts/flash_lite_axis_teacher.py`, one frozen
-  prompt (explicit 0-33/34-66/67-100 anchors per axis, current utterance only
-  as quoted data, temperature 0, JSON schema enforced, invalid output
-  rejected not back-filled). Scored dev-200 directly (200 calls) AND the
-  2,940-row purged training pool once (for B3b), never using dev labels to
-  tune the prompt.
-
-Also measured: a group-held-out fidelity check inside training (does B1
-reproduce the deterministic weak-label function it was trained on?), a
-punctuation-stripped/lowercased replay of dev-200 (production STT sets
-`enableAutomaticPunctuation=false`), and a k/n-gram sweep for B1.
-
-## Results table (dev-200, mean Spearman rho / mean absolute error)
-
-| Arm | rho | MAE | Per-turn inference calls |
-|---|---:|---:|---|
-| B0 rule | 0.344 | 12.53 | 0 |
-| B1 kNN (weak labels) | 0.362 | 13.21 | 0 |
-| B2 hybrid (B0+B1)/2 | 0.408 | 12.36 | 0 |
-| B3a ridge (weak labels) | 0.439 | 12.59 | 0 |
-| B3b ridge (Flash-Lite-derived labels) | 0.480 | 11.89 | 0 |
-| B4 Flash-Lite (live scorer) | 0.542 | 11.00 | 1 (adds serial latency; axis result feeds the reply-generation prompt so it cannot fully parallelize with reply generation in the current pipeline) |
-
-Per-axis rho, per-source rho, and the full method for each arm are in
-`docs/ml-transition-diagnosis-log.md` sections 2 and 11-12 (being extended
-with the B3/B4 write-up now) and in the commit messages listed in section 7
-of that file.
-
-## Known caveats already on record (do not re-litigate unless new evidence)
-
-- dev-200 is a dev/diagnosis set, not the frozen acceptance test. The frozen
-  test is `data/fixtures/ml_transition_reserved_final_test_pool.jsonl`
-  (176 rows / 156 groups: NICT 70, Taskmaster 105, AMI 1 reference-only),
-  unopened, unscored.
-- reviewer-01's 100 rows (gold-0101..0200) were re-scored on 2026-09-11
-  AFTER seeing the diagnosis (label_status=research_guided_rereview, not
-  blind). reviewer-avg's 100 rows are the original blind review.
-- Humor is at or near a constant 0 for Taskmaster (65 rows) and for
-  reviewer-01's slice broadly (confirmed genuine after re-review, not a
-  scoring omission) -- Humor rho is frequently NA or unstable.
-- B3/B4 hyperparameters (k, ngram, ridge l2/lr/epochs/batch) were fixed a
-  priori from defaults / the k/ngram sweep on dev-200 itself (dev-200 IS the
-  dev set, this is allowed use, but it means these are not independently
-  confirmed on unseen data yet -- that is what the reserved 176 is for).
-- No data from the reserved 176-row pool was used anywhere in this cycle.
-
-## Task for this round
-
-Adversarially check the B0-B4 experiment and the numbers above before they
-go into a shared report. Verify against the actual repo code/data rather
-than trusting the summary. Flag anything that would embarrass the team if a
-skeptical reader found it after the report was shared.
+- `ai/linear_axis_model.py` (post-fix)
+- `scripts/bootstrap_b0_b4_comparison.py` (new, committed)
+- `scripts/experiment_b1plus_linear_student.py`
+- `docs/ml-transition-diagnosis-log.md` sections 11-12
+- `docs/ai-collab/archive/` for prior cycle history if useful

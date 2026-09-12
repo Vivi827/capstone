@@ -1,56 +1,54 @@
-# CURRENT TASK — cycle 4c: adversarial check of the B0-B4 experiment
+# CURRENT TASK — cycle 4d: close remaining B0-B4 open items
 
 ## Goal
 
-The user is about to receive a written experiment report (for teammates, to
-decide whether/how to move off `PALLY_AXIS_ANALYZER=rule`). Before that
-report is finalized, get an independent adversarial check on the B0-B4
-results in `docs/ai-collab/CONTEXT.md` -- the same role Codex has played in
-every prior cycle of this diagnosis (cycle 4 and 4b), which twice caught
-real errors in Claude's own claims.
+Close out (or explicitly scope) the items cycle 4c left open, and sanity
+check the two things Claude did since: the vocabulary-matched ridge-vs-kNN
+ablation, and the post-fix bootstrap. Recommend how to handle B3b's
+Formality bias without new dev-200 leakage.
 
 ## Round 2 지시 (Codex)
 
-Read `docs/ai-collab/CONTEXT.md`. Then, using the actual repository code and
-data (re-run scripts or compute in memory, don't take numbers on faith):
+Read `docs/ai-collab/CONTEXT.md`. Using real repo code/data:
 
-1. **Reproduce the headline numbers.** Re-derive B0/B1/B2/B3a/B3b/B4's
-   dev-200 mean rho and MAE (or as many as you can within reasonable time).
-   Flag any that don't match `docs/ai-collab/CONTEXT.md`'s table.
-2. **Check for leakage or double-dipping specific to B3/B4:**
-   - Did any Flash-Lite training label for B3b get generated from a text
-     that also appears in dev-200 (should be impossible since training is
-     dev-group-purged, but verify against the actual purged file, not the
-     claim)?
-   - `ai.linear_axis_model.RidgeAxisRegressor`'s hyperparameters (l2, lr,
-     epochs, batch_size, min_df, max_features) -- were any of them tuned by
-     looking at dev-200 performance, even implicitly? If so, say exactly
-     which result is dev-tuned versus a priori.
-   - Is the k/n-gram sweep quoted for B1 selected as the best of several
-     dev-200 runs? If so, the quoted B1 number is a selected maximum, not an
-     unbiased estimate -- say by how much that likely inflates it.
-3. **Check the ridge model's legitimacy.** Is `RidgeAxisRegressor` actually
-   a defensible ridge regression (correct gradient, actual L2 term, sane
-   convergence), or does it have a bug that happens to produce a plausible
-   number? Inspect `ai/linear_axis_model.py` directly.
-4. **Check the "0 per-turn inference calls" and latency claims for B3b.**
-   Confirm B3b's deployed form really requires zero live model/API calls at
-   serve time, and that nothing in `ai/linear_axis_model.py` secretly
-   depends on scipy/numpy/sklearn (the project's ML baseline is meant to be
-   dependency-free).
-5. **Check statistical strength.** With n=200 (and often fewer once NA axes
-   are dropped, e.g. Humor), how much should one trust a rho difference like
-   0.408 (B2) vs 0.480 (B3b)? Is there any confidence-interval or
-   bootstrap evidence already in this codebase's history that bears on this,
-   and if not, say plainly that the ranking above is a point estimate on a
-   repeatedly-analyzed dev set, not a confirmed result.
-6. **Anything else a skeptical reviewer would flag** before this goes into a
-   report used to decide production behavior -- overclaiming in the writeup,
-   missing per-axis nuance (e.g. an arm winning "on average" while losing on
-   a specific important axis), source-composition confounds, or terminology
-   that overstates certainty.
+1. **Verify the vocabulary-matched ablation.** Claude reports: fitting
+   `RidgeAxisRegressor(word_ngram_max=2, min_df=1, max_features=999999)` on
+   the same 2,940-row purged training set gives a 17,913-feature vocabulary
+   (matching kNN exactly) and dev-200 rho **0.4202**, versus kNN's **0.3624**
+   and the capped-vocab (4,000-feature) ridge's **0.4279**. Reproduce this.
+   Does matching vocabulary really isolate the estimator-family effect, or
+   is there a remaining confound (e.g. TF-IDF weighting details, L2
+   normalization, feature ordering, tie-breaking)?
+2. **Verify the post-fix bootstrap** in `scripts/bootstrap_b0_b4_comparison.py`
+   (commit `6c322ce`). Is the resampling scheme (resample groups with
+   replacement within each source, same group count as observed, reuse
+   indices across arms) appropriate for this comparison? Any bias in it
+   (e.g. does it handle sources with few groups, like AMI's 39, reasonably)?
+   If you'd design the interval differently, say how and whether it would
+   likely widen or narrow the reported CIs.
+3. **Recommend how to handle B3b's Formality bias** (Flash-Lite trained
+   labels carry a ~+14 to +18 systematic Formality over-scoring that the
+   ridge student reproduces, MAE 15.4-15.6 vs hybrid's 9.6) without
+   introducing new dev-200 leakage. Options to evaluate, add your own if
+   better:
+   (a) leave it uncorrected, report as a known defect, decide later with
+       the reserved-176 pool;
+   (b) estimate a bias correction from a portion of the ALREADY-scored
+       Flash-Lite training pool against something independent of dev-200
+       (name a concrete independent anchor if one exists, or say none does);
+   (c) split dev-200 itself into a calibration slice and a reporting slice
+       (state the cost: dev-200 is already repeatedly analyzed, so this
+       adds another use, and shrinks the reporting slice);
+   (d) something else.
+4. **Given the post-fix bootstrap showing neither ridge candidate beats
+   hybrid with 95% confidence, is it premature to build a B3b deployment
+   adapter right now?** Recommend proceed / hold, and what evidence bar
+   should be cleared first if "hold."
+5. **Anything else** a skeptical reader would still flag in
+   `docs/ml-transition-diagnosis-log.md` sections 11-12 as currently
+   written, or in the committed scripts, before this goes into a report
+   shared with the team.
 
-Write findings to `docs/ai-collab/CODEX_REVIEW.md` ONLY. Do not modify any
-other file. Do not commit, push, or reset git state. Do not open the
-reserved final test pool. Do not call any external API (dev-200 and the
-training pool are already scored; use the existing files).
+Write to `docs/ai-collab/CODEX_REVIEW.md` ONLY. Do not modify any other
+file. Do not commit, push, or reset git state. Do not call any external
+API. Do not open the reserved final test pool.
