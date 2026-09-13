@@ -1,0 +1,69 @@
+{
+  "seed": 20260910,
+  "reason_quota": {
+    "energy_disagreement": 13,
+    "curiosity_disagreement": 13,
+    "energy_extreme": 5,
+    "curiosity_extreme": 5,
+    "random_control": 4
+  },
+  "review_axes": [
+    "Energy",
+    "Curiosity",
+    "Intimacy"
+  ],
+  "plan": {
+    "energy_disagreement": {
+      "quota": 13,
+      "available": 40,
+      "per_source": {
+        "ami_real": 5,
+        "nict_jle_real": 4,
+        "taskmaster1_woz_user_real": 4
+      }
+    },
+    "curiosity_disagreement": {
+      "quota": 13,
+      "available": 40,
+      "per_source": {
+        "nict_jle_real": 9,
+        "ami_real": 2,
+        "taskmaster1_woz_user_real": 2
+      }
+    },
+    "energy_extreme": {
+      "quota": 5,
+      "available": 15,
+      "per_source": {
+        "taskmaster1_woz_user_real": 4,
+        "ami_real": 1,
+        "nict_jle_real": 0
+      }
+    },
+    "curiosity_extreme": {
+      "quota": 5,
+      "available": 15,
+      "per_source": {
+        "nict_jle_real": 2,
+        "taskmaster1_woz_user_real": 2,
+        "ami_real": 1
+      }
+    },
+    "random_control": {
+      "quota": 4,
+      "available": 10,
+      "per_source": {
+        "taskmaster1_woz_user_real": 1,
+        "ami_real": 1,
+        "nict_jle_real": 2
+      }
+    }
+  },
+  "selected": 40,
+  "remainder": 80,
+  "selected_source_mix": {
+    "ami_real": 10,
+    "nict_jle_real": 17,
+    "taskmaster1_woz_user_real": 13
+  }
+}

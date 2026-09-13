@@ -1,0 +1,563 @@
+{
+  "annotation_batch": "pilot",
+  "dataset_partition": "train",
+  "axes": "energy-humor",
+  "scored_axes": [
+    "Energy",
+    "Humor"
+  ],
+  "seed": 20260910,
+  "slots": [
+    "A",
+    "B"
+  ],
+  "item_count": 54,
+  "items": [
+    {
+      "item_id": "pilot-0001",
+      "candidate_index": 0,
+      "utterance": "the other components and the circuit board buttons, infrared, led, etcetera, for the components",
+      "utterance_sha1": "fdcbaa31b3f04beedb397a302ca7a3c954344ada",
+      "previous_turn": "And uh yeah",
+      "next_turn": "um. So"
+    },
+    {
+      "item_id": "pilot-0002",
+      "candidate_index": 1,
+      "utterance": "We evaluated ourselves, we thought we were great.",
+      "utterance_sha1": "dc4ecb63420af7abc161d3079fa06d4125831b31",
+      "previous_turn": "Yeah.",
+      "next_turn": "Yeah."
+    },
+    {
+      "item_id": "pilot-0003",
+      "candidate_index": 2,
+      "utterance": "and uh have a nice lunch, huh?",
+      "utterance_sha1": "cf59af52b4e044e1075ed69b482dcc894dd35356",
+      "previous_turn": "Mm-hmm.",
+      "next_turn": "Lunch."
+    },
+    {
+      "item_id": "pilot-0004",
+      "candidate_index": 3,
+      "utterance": "but it will be terrible.",
+      "utterance_sha1": "8e6d232ca2fd1039d4279cfe0a6777656551b18b",
+      "previous_turn": "Honestly speaking, I cannot imagine it, so far",
+      "next_turn": "Yeah."
+    },
+    {
+      "item_id": "pilot-0005",
+      "candidate_index": 4,
+      "utterance": "Can you uh push the button?",
+      "utterance_sha1": "5794aa53d764902966d30e9e28c72a36b24d5cc4",
+      "previous_turn": "So, now um, last time.",
+      "next_turn": "One time please."
+    },
+    {
+      "item_id": "pilot-0006",
+      "candidate_index": 5,
+      "utterance": "So that could be a great um application.",
+      "utterance_sha1": "d55da170c3eb5228eeeff1394c62fd333a7a316a",
+      "previous_turn": "To eat? Yeah, mainly, and to break.",
+      "next_turn": "Remote controls children proof."
+    },
+    {
+      "item_id": "pilot-0007",
+      "candidate_index": 6,
+      "utterance": "You love the eyes.",
+      "utterance_sha1": "96f90a52d6d02a6b7e066e1c44ecead025a7e18c",
+      "previous_turn": "No.",
+      "next_turn": "What are you I don"
+    },
+    {
+      "item_id": "pilot-0008",
+      "candidate_index": 7,
+      "utterance": "so you didn't st go off and think, wouldn't it be great to have a vibrating remote control shaped like a banana",
+      "utterance_sha1": "486eaa7f03d99dd59e296559218629312c6c66b6",
+      "previous_turn": "It wasn't like we were alone for very long",
+      "next_turn": "Mm-hmm."
+    },
+    {
+      "item_id": "pilot-0009",
+      "candidate_index": 8,
+      "utterance": "Oh. Why do I pay you for?",
+      "utterance_sha1": "ab13c50bf4663b55e66026f7839642a5406a8432",
+      "previous_turn": "I don't know.",
+      "next_turn": "Better ideas."
+    },
+    {
+      "item_id": "pilot-0010",
+      "candidate_index": 9,
+      "utterance": "If you look at your mobile phones are some stripes, little little holes.",
+      "utterance_sha1": "9abe6965c2bbbbe913a1aafece934bddca5f7bcb",
+      "previous_turn": "And j and the microphone, I mean it can be very small.",
+      "next_turn": "Yeah."
+    },
+    {
+      "item_id": "pilot-0011",
+      "candidate_index": 10,
+      "utterance": "I'm allergic to cats, too.",
+      "utterance_sha1": "cc5f8504306549fcc9e9dd8df727ac6409f4f6e2",
+      "previous_turn": "Uh.",
+      "next_turn": "Oh, okay."
+    },
+    {
+      "item_id": "pilot-0012",
+      "candidate_index": 11,
+      "utterance": "Ye I think the can opener i is a brilliant idea actually, because television and beer is not a rare combination.",
+      "utterance_sha1": "3edb4405247c74c105d8b5add1879f0369aff920",
+      "previous_turn": "It's gonna cost twenty five Euros.",
+      "next_turn": "Yeah, but the well, it's already been done."
+    },
+    {
+      "item_id": "pilot-0013",
+      "candidate_index": 12,
+      "utterance": "I though it was brilliant no?",
+      "utterance_sha1": "7233ec54b45aa0b2e628f3e02f5b4a597345cd70",
+      "previous_turn": "yeah.",
+      "next_turn": "My first bit of information was like this child's drawn picture of how a remote works."
+    },
+    {
+      "item_id": "pilot-0014",
+      "candidate_index": 13,
+      "utterance": "Did uh did you guys get the email I sent you?",
+      "utterance_sha1": "0d08801cac806452530904cc469b28bddfb2c982",
+      "previous_turn": "um it it doesn't have a, you know, a messenger will go.",
+      "next_turn": "Yeah."
+    },
+    {
+      "item_id": "pilot-0015",
+      "candidate_index": 14,
+      "utterance": "That this will be a crux.",
+      "utterance_sha1": "69ae0bb9b4798ad617bdc5a0887a7403f899095a",
+      "previous_turn": "So my point of attention is especially this part.",
+      "next_turn": "Yeah."
+    },
+    {
+      "item_id": "pilot-0016",
+      "candidate_index": 15,
+      "utterance": "So um obviously I personally have to say that dynamo is out of the question really.",
+      "utterance_sha1": "3ef0dbbefeb301d6f3014ef27ac1c1fd66029028",
+      "previous_turn": "m move the the actual device and this pr uh provides it with with uh some energy.",
+      "next_turn": "Mm."
+    },
+    {
+      "item_id": "pilot-0017",
+      "candidate_index": 16,
+      "utterance": "So you are display on the screen.",
+      "utterance_sha1": "1a547e357f968d99b082d15ae2aec8d57ff3a711",
+      "previous_turn": "Yeah.",
+      "next_turn": "On the T_V_ screen."
+    },
+    {
+      "item_id": "pilot-0018",
+      "candidate_index": 17,
+      "utterance": "I think we are great.",
+      "utterance_sha1": "7333f95ccc3388ffe895812857d515b80e8d9437",
+      "previous_turn": "Ah, very.",
+      "next_turn": "Budget."
+    },
+    {
+      "item_id": "pilot-0019",
+      "candidate_index": 18,
+      "utterance": "No it looks great.",
+      "utterance_sha1": "452a3fade8b5a78100a67a39cf04ab63345038a1",
+      "previous_turn": "It's a cat.",
+      "next_turn": "Miaow."
+    },
+    {
+      "item_id": "pilot-0020",
+      "candidate_index": 19,
+      "utterance": "Is a cradle very cheap?",
+      "utterance_sha1": "8bff768b8fa91adae5af5a42b005797a26401c33",
+      "previous_turn": "that's very cheap.",
+      "next_turn": "Oh"
+    },
+    {
+      "item_id": "pilot-0021",
+      "candidate_index": 20,
+      "utterance": "Okay, tha that would be great",
+      "utterance_sha1": "5a5efb19284d1d42b72c689ca88a93954c74f429",
+      "previous_turn": "but I'll find out more at our next meeting.",
+      "next_turn": "so if you find out from the technology background, okay"
+    },
+    {
+      "item_id": "pilot-0022",
+      "candidate_index": 21,
+      "utterance": "Um, I don't think we have any great discussion at this point.",
+      "utterance_sha1": "6556f389d4ebd469c814e36275841dcf784125bc",
+      "previous_turn": "Project plan, that falls under the same heading pretty much.",
+      "next_turn": "No."
+    },
+    {
+      "item_id": "pilot-0023",
+      "candidate_index": 22,
+      "utterance": "That's a great idea",
+      "utterance_sha1": "958d6681c3638614cb83f7ee182a27a07665f58a",
+      "previous_turn": "Yeah. So I think he'll can see you, yeah. So, if you can come.",
+      "next_turn": "Yeah."
+    },
+    {
+      "item_id": "pilot-0024",
+      "candidate_index": 23,
+      "utterance": "No. That'd be great.",
+      "utterance_sha1": "cfd42acaa5674d7776f4359272290333b0fdf688",
+      "previous_turn": "looks like the next available appointment available is today at 2pm. does that work for you? or should i search for another time?",
+      "next_turn": "awesome. i'll get that booked. but before i do, are you aware of the $89 fee at this shop?"
+    },
+    {
+      "item_id": "pilot-0025",
+      "candidate_index": 24,
+      "utterance": "Hey, I'm great. Almost done at work and want to order some pizzas for pickup from Bella Luna.",
+      "utterance_sha1": "b47041a5e7fbd245184bd8335c85b4b43cfe594b",
+      "previous_turn": "Hi how are you today?",
+      "next_turn": "Sounds like a nice evening, how many pizzas did you want?"
+    },
+    {
+      "item_id": "pilot-0026",
+      "candidate_index": 25,
+      "utterance": "Wow, that's great. That's great. Thank you so much.",
+      "utterance_sha1": "16cc53b8c979b65b24eb25a7fb9d91e87722eb0c",
+      "previous_turn": "I am seeing one movie theater that is showing the Incredibles 2.",
+      "next_turn": "would you like to book tickets for that movie?"
+    },
+    {
+      "item_id": "pilot-0027",
+      "candidate_index": 26,
+      "utterance": "It keeps stalling at long traffic lights.",
+      "utterance_sha1": "18bbc8487f23e0ea4644e649bcf54fe98d97152c",
+      "previous_turn": "Okay! What is the appointment for?",
+      "next_turn": "Oh no! are you able to come by tomorrow?"
+    },
+    {
+      "item_id": "pilot-0028",
+      "candidate_index": 27,
+      "utterance": "Who directed this movie?",
+      "utterance_sha1": "251591433ad8472a3ee7711322f65e6efe7dd924",
+      "previous_turn": "Sure.",
+      "next_turn": "Directors were: Peter Ramsey, Robert Persichetti Jr., Rodney Rothman, Bob Persichetti."
+    },
+    {
+      "item_id": "pilot-0029",
+      "candidate_index": 28,
+      "utterance": "Erm but the theater is erm great",
+      "utterance_sha1": "da8b9d96b5410c69e745ce753a9c2fdac671a005",
+      "previous_turn": "Umm . I see. . Erm movies. . Which do you prefer er watching movies at the theater or at home?",
+      "next_turn": "Umm ."
+    },
+    {
+      "item_id": "pilot-0030",
+      "candidate_index": 29,
+      "utterance": "Great. And how long is the estimated travel time?",
+      "utterance_sha1": "587767af40b134e1493447699e84ba58eae5a5f3",
+      "previous_turn": "yes, your driver will be there in 8 minutes.",
+      "next_turn": "your trip should take 30 minutes."
+    },
+    {
+      "item_id": "pilot-0031",
+      "candidate_index": 30,
+      "utterance": "Oh that's that's great",
+      "utterance_sha1": "8032fdf6be3d35ce46576d9bbbdd70709c505cd7",
+      "previous_turn": "I see. O K, let me check. Humm . How about this one?",
+      "next_turn": ""
+    },
+    {
+      "item_id": "pilot-0032",
+      "candidate_index": 31,
+      "utterance": "Awesome. Hey. Who who directed this one?",
+      "utterance_sha1": "f4593f1856457f0bbac6f2342d4ae91fbbfc9fa2",
+      "previous_turn": "ok, your total is $48.",
+      "next_turn": "tyler perry is the director."
+    },
+    {
+      "item_id": "pilot-0033",
+      "candidate_index": 32,
+      "utterance": "Mm that's wonderful, yeah",
+      "utterance_sha1": "d5148f79dcbe29d0d5bcbd1118894d9e4deead7a",
+      "previous_turn": "A-ha .",
+      "next_turn": "So you enjoyed"
+    },
+    {
+      "item_id": "pilot-0034",
+      "candidate_index": 33,
+      "utterance": "Who direct the movie?",
+      "utterance_sha1": "1ea971d444ddb74d99140d34b20ea6dfa3fed107",
+      "previous_turn": "That sounds perfect.",
+      "next_turn": "robert rodriguez is the director."
+    },
+    {
+      "item_id": "pilot-0035",
+      "candidate_index": 34,
+      "utterance": "Please pick up from Oakland Airport.",
+      "utterance_sha1": "1f45f0d2e3c7352d91b6cb9c4906caca1449e619",
+      "previous_turn": "sure, what is the pickup location?",
+      "next_turn": "where would you like to be dropped off?"
+    },
+    {
+      "item_id": "pilot-0036",
+      "candidate_index": 35,
+      "utterance": "School life um I now, my school life is boring",
+      "utterance_sha1": "b0b9d6332f638f83f5fb85f8d7e7034697a983c9",
+      "previous_turn": "Uhu .",
+      "next_turn": "."
+    },
+    {
+      "item_id": "pilot-0037",
+      "candidate_index": 36,
+      "utterance": "Maybe not uum not love story",
+      "utterance_sha1": "80f8c80a5a5f6c3507dd25675182645134b2af95",
+      "previous_turn": "Oh . It's a love story?",
+      "next_turn": "Uhu ."
+    },
+    {
+      "item_id": "pilot-0038",
+      "candidate_index": 37,
+      "utterance": "I I am I'm te terrible with dog",
+      "utterance_sha1": "559041aa789aa4f6fd6a8a75b84a404257c18ccc",
+      "previous_turn": "Uh . Really?",
+      "next_turn": "Uh-huh I see. Thank you very much."
+    },
+    {
+      "item_id": "pilot-0039",
+      "candidate_index": 38,
+      "utterance": "Erm say as I see err that room is err very er lighter colors coordinate",
+      "utterance_sha1": "4469ed475d3488d614f89814324cec2201c3c409",
+      "previous_turn": "This picture. O K. Please describe this picture for me.",
+      "next_turn": "Hmm ."
+    },
+    {
+      "item_id": "pilot-0040",
+      "candidate_index": 39,
+      "utterance": "I I I think er normally, ee twenty twenty-four hours",
+      "utterance_sha1": "45b5a1a7ff2b238089c660c871104b2abe7ebc77",
+      "previous_turn": "er one month or.",
+      "next_turn": "This is special one. Very special one ."
+    },
+    {
+      "item_id": "pilot-0041",
+      "candidate_index": 40,
+      "utterance": "Hi, could you help me with ordering from Starbucks?",
+      "utterance_sha1": "77e0fc57e56ee1160e9b2853660e480631169ced",
+      "previous_turn": "HI, how can i help you?",
+      "next_turn": "sure, what would you like to order?"
+    },
+    {
+      "item_id": "pilot-0042",
+      "candidate_index": 41,
+      "utterance": "Recently, I never been to shopping Because I love skiing",
+      "utterance_sha1": "ad2f4fa7b06ec7462d06f32d858157b2e2d5b9ac",
+      "previous_turn": "Mmm . I see. O K. How often do you go shoppping?",
+      "next_turn": "Oh I see. Eh . How did you become interested in skiing?"
+    },
+    {
+      "item_id": "pilot-0043",
+      "candidate_index": 42,
+      "utterance": "Because I I my my parents gave me a lot of love",
+      "utterance_sha1": "3876c8a7d050f7936f7757a73f9823501e36b18f",
+      "previous_turn": "Why?",
+      "next_turn": ""
+    },
+    {
+      "item_id": "pilot-0044",
+      "candidate_index": 43,
+      "utterance": "Yeah. I need to order a pizza from Bella Luna.",
+      "utterance_sha1": "b7b301e1c5813bdb5d5d384a7e7cd224c3221e70",
+      "previous_turn": "",
+      "next_turn": "Hi how can I help you?"
+    },
+    {
+      "item_id": "pilot-0045",
+      "candidate_index": 44,
+      "utterance": "So urm for example, if I punched my friends, when when my father look looked the situation, ur he will got angry",
+      "utterance_sha1": "180ba49715fa0888113b681481f1b210f4701e8d",
+      "previous_turn": "No? I don't know.",
+      "next_turn": "O K. It sounds like he is a nice person."
+    },
+    {
+      "item_id": "pilot-0046",
+      "candidate_index": 45,
+      "utterance": "Great, and is it currently busy there?",
+      "utterance_sha1": "706c60ecc5cb823daac20fba07232016bf5b5a03",
+      "previous_turn": "yes, they allow children.",
+      "next_turn": "right now, there is usually no wait."
+    },
+    {
+      "item_id": "pilot-0047",
+      "candidate_index": 46,
+      "utterance": "Could you get me the phone number to that restaurant?",
+      "utterance_sha1": "8c77e8d437db9543f3421d61721b4afe357a2cf1",
+      "previous_turn": "I think I like that one.",
+      "next_turn": "Alright, one moment."
+    },
+    {
+      "item_id": "pilot-0048",
+      "candidate_index": 47,
+      "utterance": "Great. Could you tell me what the prices are like at Shoki Ramen House?",
+      "utterance_sha1": "0cd6d335a6d8791da047586a5887b4f90db7a946",
+      "previous_turn": "They're both open until 10 pm.",
+      "next_turn": "They're moderately priced around 16 dollars a bowl."
+    },
+    {
+      "item_id": "pilot-0049",
+      "candidate_index": 48,
+      "utterance": "Err I love yu you and your friends and me my friends",
+      "utterance_sha1": "87e7aea66f6314815f363b36277a6c5c9915fdb4",
+      "previous_turn": "Well I don't know. Maybe you'll have another job. Your job is more important than your friends.",
+      "next_turn": "O K, well I'll see, if we have another party, I'll contact you."
+    },
+    {
+      "item_id": "pilot-0050",
+      "candidate_index": 49,
+      "utterance": "And how much eh is it to New York",
+      "utterance_sha1": "c96ebc645a49694ceb00f646ab41455c01694b25",
+      "previous_turn": "Of course.",
+      "next_turn": "O K. Uhm . The cheap cheaper one is fifty dollars."
+    },
+    {
+      "item_id": "pilot-0051",
+      "candidate_index": 50,
+      "utterance": "Awesome. That's all I needed. Thank you.",
+      "utterance_sha1": "a938f4a9a046851ea59179e3b64b6621a0527f69",
+      "previous_turn": "can i help you with anything else?",
+      "next_turn": "your welcome, enjoy your pizzas."
+    },
+    {
+      "item_id": "pilot-0052",
+      "candidate_index": 51,
+      "utterance": "Could you tell me how long that ride will take?",
+      "utterance_sha1": "a6a6d461b0d25e4587e6e959ad4e8cad969f9cda",
+      "previous_turn": "ok, i have booked a lyft xl going from arizona mills to metrocenter, scheduled to pick you up at 9pm tonight, can i help with anything else?",
+      "next_turn": "sure, it will take about 38 minutes depending on traffic tonight at 9pm."
+    },
+    {
+      "item_id": "pilot-0053",
+      "candidate_index": 52,
+      "utterance": "Err i i it makes me surprise and uum I uh I had great fun",
+      "utterance_sha1": "852724d4c705573e932ea42c83c89354a6eba07b",
+      "previous_turn": "Uhu .",
+      "next_turn": "Uhu ."
+    },
+    {
+      "item_id": "pilot-0054",
+      "candidate_index": 53,
+      "utterance": "Okay, great. And what was the other restaurant, again?",
+      "utterance_sha1": "51ffaa76eb0ce57669ae48e517b46b725aff424c",
+      "previous_turn": "their kids menu has mostly thai food but in smaller portions.",
+      "next_turn": "it is called sawasdee thai cuisine."
+    }
+  ],
+  "slot_order": {
+    "A": [
+      "pilot-0037",
+      "pilot-0038",
+      "pilot-0021",
+      "pilot-0007",
+      "pilot-0040",
+      "pilot-0053",
+      "pilot-0044",
+      "pilot-0027",
+      "pilot-0029",
+      "pilot-0041",
+      "pilot-0046",
+      "pilot-0039",
+      "pilot-0051",
+      "pilot-0036",
+      "pilot-0011",
+      "pilot-0001",
+      "pilot-0025",
+      "pilot-0022",
+      "pilot-0050",
+      "pilot-0012",
+      "pilot-0048",
+      "pilot-0028",
+      "pilot-0045",
+      "pilot-0043",
+      "pilot-0033",
+      "pilot-0042",
+      "pilot-0034",
+      "pilot-0008",
+      "pilot-0018",
+      "pilot-0024",
+      "pilot-0002",
+      "pilot-0016",
+      "pilot-0032",
+      "pilot-0003",
+      "pilot-0013",
+      "pilot-0031",
+      "pilot-0047",
+      "pilot-0035",
+      "pilot-0009",
+      "pilot-0054",
+      "pilot-0052",
+      "pilot-0004",
+      "pilot-0049",
+      "pilot-0006",
+      "pilot-0017",
+      "pilot-0005",
+      "pilot-0026",
+      "pilot-0019",
+      "pilot-0030",
+      "pilot-0023",
+      "pilot-0010",
+      "pilot-0014",
+      "pilot-0015",
+      "pilot-0020"
+    ],
+    "B": [
+      "pilot-0022",
+      "pilot-0037",
+      "pilot-0054",
+      "pilot-0052",
+      "pilot-0011",
+      "pilot-0003",
+      "pilot-0002",
+      "pilot-0028",
+      "pilot-0007",
+      "pilot-0046",
+      "pilot-0029",
+      "pilot-0034",
+      "pilot-0015",
+      "pilot-0005",
+      "pilot-0020",
+      "pilot-0010",
+      "pilot-0009",
+      "pilot-0030",
+      "pilot-0013",
+      "pilot-0012",
+      "pilot-0031",
+      "pilot-0036",
+      "pilot-0039",
+      "pilot-0016",
+      "pilot-0051",
+      "pilot-0006",
+      "pilot-0053",
+      "pilot-0043",
+      "pilot-0026",
+      "pilot-0038",
+      "pilot-0001",
+      "pilot-0033",
+      "pilot-0048",
+      "pilot-0040",
+      "pilot-0032",
+      "pilot-0047",
+      "pilot-0024",
+      "pilot-0035",
+      "pilot-0019",
+      "pilot-0008",
+      "pilot-0021",
+      "pilot-0041",
+      "pilot-0004",
+      "pilot-0027",
+      "pilot-0025",
+      "pilot-0044",
+      "pilot-0049",
+      "pilot-0050",
+      "pilot-0018",
+      "pilot-0023",
+      "pilot-0042",
+      "pilot-0014",
+      "pilot-0045",
+      "pilot-0017"
+    ]
+  }
+}

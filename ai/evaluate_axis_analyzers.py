@@ -8,6 +8,7 @@ Run from the repository root:
 
 import argparse
 import hashlib
+import math
 import os
 import sys
 from pathlib import Path
@@ -54,7 +55,10 @@ def _pearson(left: list[float], right: list[float]) -> float:
     left_den = sum((a - left_mean) ** 2 for a in left) ** 0.5
     right_den = sum((b - right_mean) ** 2 for b in right) ** 0.5
     if left_den == 0 or right_den == 0:
-        return 0.0
+        # One side is constant: rank correlation is undefined, not zero. NaN so
+        # callers can exclude the axis explicitly instead of averaging in a
+        # spurious 0.0 (which silently deflates the mean and hides the gap).
+        return float("nan")
     return numerator / (left_den * right_den)
 
 
@@ -65,6 +69,29 @@ def _spearman(rows: list[dict]) -> dict[str, float]:
         predicted = [row["predicted"][axis] for row in rows]
         result[axis] = _pearson(_rank(expected), _rank(predicted))
     return result
+
+
+def _constant_side(rows: list[dict], axis: str) -> str:
+    """Describe which side is constant when an axis Spearman is NaN — an
+    all-constant human target means the test lacks discriminating information;
+    an all-constant model prediction means the model degenerated on that axis."""
+    expected = {row["expected"][axis] for row in rows}
+    predicted = {row["predicted"][axis] for row in rows}
+    if len(expected) <= 1 and len(predicted) <= 1:
+        return "both constant"
+    if len(expected) <= 1:
+        return "human target constant (test lacks signal)"
+    if len(predicted) <= 1:
+        return "model prediction constant (model degenerate)"
+    return "constant"
+
+
+def _nan_aware_mean(values: dict[str, float]) -> tuple[float, list[str]]:
+    """Mean over axes with a real value; return (mean, [NaN axis names])."""
+    na_axes = [axis for axis, value in values.items() if math.isnan(value)]
+    valid = [value for value in values.values() if not math.isnan(value)]
+    mean = sum(valid) / len(valid) if valid else float("nan")
+    return mean, na_axes
 
 
 def _evaluate_rule_based(examples: list | None = None) -> list[dict]:
@@ -174,8 +201,14 @@ def _print_report(name: str, rows: list[dict]) -> None:
     for axis, value in _mae(rows).items():
         print(f"  {axis:<10}: {value:5.2f}")
     print("Spearman")
-    for axis, value in _spearman(rows).items():
-        print(f"  {axis:<10}: {value:5.2f}")
+    spearman = _spearman(rows)
+    for axis, value in spearman.items():
+        if math.isnan(value):
+            print(f"  {axis:<10}:   n/a  ({_constant_side(rows, axis)})")
+        else:
+            print(f"  {axis:<10}: {value:5.2f}")
+    _, na_axes = _nan_aware_mean(spearman)
+    print(f"  valid_axes : {len(AXIS_KEYS) - len(na_axes)}/{len(AXIS_KEYS)}" + (f"  (n/a: {', '.join(na_axes)})" if na_axes else ""))
 
     worst = sorted(rows, key=_total_error, reverse=True)[:3]
     print("Worst cases")
@@ -240,25 +273,49 @@ def main() -> None:
     rule_mae = sum(_mae(rule_rows).values()) / len(AXIS_KEYS)
     ml_mae = sum(_mae(ml_rows).values()) / len(AXIS_KEYS)
     hybrid_mae = sum(_mae(hybrid_rows).values()) / len(AXIS_KEYS)
-    rule_spearman = sum(_spearman(rule_rows).values()) / len(AXIS_KEYS)
-    ml_spearman = sum(_spearman(ml_rows).values()) / len(AXIS_KEYS)
-    hybrid_spearman = sum(_spearman(hybrid_rows).values()) / len(AXIS_KEYS)
+
+    rule_sp, ml_sp, hybrid_sp = _spearman(rule_rows), _spearman(ml_rows), _spearman(hybrid_rows)
+    rule_spearman, rule_na = _nan_aware_mean(rule_sp)
+    ml_spearman, ml_na = _nan_aware_mean(ml_sp)
+    hybrid_spearman, hybrid_na = _nan_aware_mean(hybrid_sp)
+    # Auxiliary mean over axes that are valid for ALL three analyzers, so the
+    # comparison is over the same axis set rather than each model's own subset.
+    common_axes = [axis for axis in AXIS_KEYS if not any(math.isnan(s[axis]) for s in (rule_sp, ml_sp, hybrid_sp))]
+
     print("\nSummary")
     print(f"  rule_avg_mae  : {rule_mae:.2f}")
     print(f"  ml_avg_mae    : {ml_mae:.2f} (delta vs rule: {ml_mae - rule_mae:+.2f})")
     print(f"  hybrid_avg_mae: {hybrid_mae:.2f} (delta vs rule: {hybrid_mae - rule_mae:+.2f})")
     best_mae = min(("rule", rule_mae), ("ml", ml_mae), ("hybrid", hybrid_mae), key=lambda kv: kv[1])
-    best_spearman = max(
-        ("rule", rule_spearman),
-        ("ml", ml_spearman),
-        ("hybrid", hybrid_spearman),
-        key=lambda kv: kv[1],
-    )
-    print(f"  rule_avg_spearman  : {rule_spearman:.2f}")
-    print(f"  ml_avg_spearman    : {ml_spearman:.2f}")
-    print(f"  hybrid_avg_spearman: {hybrid_spearman:.2f}")
+
+    def _fmt_na(na_axes: list[str]) -> str:
+        return f"  (n/a: {', '.join(na_axes)})" if na_axes else ""
+
+    print(f"  rule_avg_spearman  : {rule_spearman:.2f} over {len(AXIS_KEYS) - len(rule_na)}/{len(AXIS_KEYS)} axes{_fmt_na(rule_na)}")
+    print(f"  ml_avg_spearman    : {ml_spearman:.2f} over {len(AXIS_KEYS) - len(ml_na)}/{len(AXIS_KEYS)} axes{_fmt_na(ml_na)}")
+    print(f"  hybrid_avg_spearman: {hybrid_spearman:.2f} over {len(AXIS_KEYS) - len(hybrid_na)}/{len(AXIS_KEYS)} axes{_fmt_na(hybrid_na)}")
+    if common_axes and len(common_axes) < len(AXIS_KEYS):
+        r = sum(rule_sp[a] for a in common_axes) / len(common_axes)
+        m = sum(ml_sp[a] for a in common_axes) / len(common_axes)
+        h = sum(hybrid_sp[a] for a in common_axes) / len(common_axes)
+        print(f"  common_valid_axes  : {', '.join(common_axes)}  ->  rule {r:.2f} / ml {m:.2f} / hybrid {h:.2f}")
     print(f"  best_by_mae        : {best_mae[0]} ({best_mae[1]:.2f})")
-    print(f"  best_by_spearman   : {best_spearman[0]} ({best_spearman[1]:.2f})")
+    all_na = set(rule_na) | set(ml_na) | set(hybrid_na)
+    if all_na:
+        # Any analyzer with a required axis NA means the per-model average
+        # Spearman is taken over different axis sets, so the 5-axis best-model
+        # verdict is not comparable. Withhold it. The MAE ranking above and the
+        # common-valid-axes line above stay as auxiliary comparisons.
+        print(f"  best_by_spearman   : verdict withheld (required axis NA: {', '.join(sorted(all_na))}; per-model means cover different axis sets)")
+    else:
+        ranked_sp = [(name, val) for name, val in (("rule", rule_spearman), ("ml", ml_spearman), ("hybrid", hybrid_spearman)) if not math.isnan(val)]
+        if ranked_sp:
+            best_spearman = max(ranked_sp, key=lambda kv: kv[1])
+            print(f"  best_by_spearman   : {best_spearman[0]} ({best_spearman[1]:.2f})")
+        else:
+            print("  best_by_spearman   : undefined (all analyzers have a constant axis)")
+    if all_na:
+        print(f"  GATE NOTE: {', '.join(sorted(all_na))} rho undefined for at least one analyzer -> the 5-axis gate is NOT judged passed on this run.")
 
 
 if __name__ == "__main__":

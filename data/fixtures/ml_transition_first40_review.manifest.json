@@ -1,0 +1,424 @@
+{
+  "annotation_batch": "first40",
+  "dataset_partition": "train",
+  "axes": "energy-curiosity-intimacy",
+  "scored_axes": [
+    "Energy",
+    "Curiosity",
+    "Intimacy"
+  ],
+  "seed": 20260910,
+  "slots": [
+    "A",
+    "B"
+  ],
+  "item_count": 40,
+  "items": [
+    {
+      "item_id": "first40-0001",
+      "candidate_index": 0,
+      "utterance": "we are using it",
+      "utterance_sha1": "7841a6f1b44a481d89f41ee8df733ad63834194b",
+      "previous_turn": "Yeah",
+      "next_turn": "W"
+    },
+    {
+      "item_id": "first40-0002",
+      "candidate_index": 1,
+      "utterance": "Oh, that would be brilliant.",
+      "utterance_sha1": "67eaf958004586e3a38b1c61f40eaa151b9d374a",
+      "previous_turn": "You could s",
+      "next_turn": "Yeah. Awesome. Awesome."
+    },
+    {
+      "item_id": "first40-0003",
+      "candidate_index": 2,
+      "utterance": "and I think that those are things after my research that we definitely wanna try to incorporate.",
+      "utterance_sha1": "2c35437cfb40445173f03851c558692797b543d6",
+      "previous_turn": "we talked about the a light emitting thing as well as uh maybe a beep",
+      "next_turn": "'Kay can we go to the next slide please?"
+    },
+    {
+      "item_id": "first40-0004",
+      "candidate_index": 3,
+      "utterance": "and, you know, channel selection and volume selection are absolutely essential",
+      "utterance_sha1": "2c71d6f10befa3ec26524e68e3a642e0bc93c399",
+      "previous_turn": "so on a scale of one to ten, how important is that",
+      "next_turn": "and the power, well it's not quite so essential, apparently"
+    },
+    {
+      "item_id": "first40-0005",
+      "candidate_index": 4,
+      "utterance": "But you definitely get a specific instruction.",
+      "utterance_sha1": "10fbdc274a1d92902dd31134e6809740a494795c",
+      "previous_turn": "Okay.",
+      "next_turn": "Okay"
+    },
+    {
+      "item_id": "first40-0006",
+      "candidate_index": 5,
+      "utterance": "erm I don't need to think about er difficult topics when I see the love story",
+      "utterance_sha1": "bffceddc8c5bbfcb2c4ce76aa8271ff3610f7fc4",
+      "previous_turn": "Hm .",
+      "next_turn": "Ah I see."
+    },
+    {
+      "item_id": "first40-0007",
+      "candidate_index": 6,
+      "utterance": "awful incident um concerning myself",
+      "utterance_sha1": "b29dcf9b9ecc8eb4935c2e987b986dd3612a4394",
+      "previous_turn": "This is a picture sequence from number one through six. Could you tell me about this story, and it was one day last week.",
+      "next_turn": "I see. Thank you very much."
+    },
+    {
+      "item_id": "first40-0008",
+      "candidate_index": 7,
+      "utterance": "It's very urr fantastic and interesting",
+      "utterance_sha1": "9a0b6ae45a773d7ca5b8ed6ace998ec7c1053d97",
+      "previous_turn": "Did you like it?",
+      "next_turn": ""
+    },
+    {
+      "item_id": "first40-0009",
+      "candidate_index": 8,
+      "utterance": "And then otherwise I ha I can't go to the airport So please",
+      "utterance_sha1": "b13cc62e8a961d3c689c45e31922a1740ec5760b",
+      "previous_turn": "Really? We didn't get any report about a accident.",
+      "next_turn": "Ah O K. Um O K. I checked it. But it's another railway company."
+    },
+    {
+      "item_id": "first40-0010",
+      "candidate_index": 9,
+      "utterance": "That'd be fantastic. Can you please let me know what the total will be, please? I want extra cheese on all four, please.",
+      "utterance_sha1": "9c711efa5936c53fed7b46fabf56d81cd6c9fa2a",
+      "previous_turn": "got it, so 4 small pizzas, 1 chix bbq, 1 meat lovers, 1 supreme, and 1 hawaiin.",
+      "next_turn": "Extra cheese on all four."
+    },
+    {
+      "item_id": "first40-0011",
+      "candidate_index": 10,
+      "utterance": "Awesome. Could you book that for me?",
+      "utterance_sha1": "1e7623f261d7e8e3f94bd6303a30d914677392d4",
+      "previous_turn": "yes, it looks like they will be able to see you at 3pm tomorrow.",
+      "next_turn": "sure, i'll book that now."
+    },
+    {
+      "item_id": "first40-0012",
+      "candidate_index": 11,
+      "utterance": "Oh okay, awesome. Awesome. So I'm going to choose the second restaurant, please.",
+      "utterance_sha1": "7c998c0df4e86d183d3bf2d82799f99f346b0bd4",
+      "previous_turn": "Okay, and the second restaurant, am just wondering, do they allow pets?",
+      "next_turn": "Only in the outdoor area."
+    },
+    {
+      "item_id": "first40-0013",
+      "candidate_index": 12,
+      "utterance": "Hey. How's it going? Have you ever heard of a movie called Captive State?",
+      "utterance_sha1": "cfae16ebd67a49fe20afa4a06c9e35300c3cf48d",
+      "previous_turn": "hi, how can i help you?",
+      "next_turn": "i have not heard of that, would you like to see it?"
+    },
+    {
+      "item_id": "first40-0014",
+      "candidate_index": 13,
+      "utterance": "Do you know Cherokee",
+      "utterance_sha1": "151b8ba072d5c9db59f861ac7bb3ea00174e9afa",
+      "previous_turn": "Uh-hum .",
+      "next_turn": "No."
+    },
+    {
+      "item_id": "first40-0015",
+      "candidate_index": 14,
+      "utterance": "well can you ask anyone any anybody else like er some professionals",
+      "utterance_sha1": "b1b2ebc3b467d860321950c64b151299f3ab6d41",
+      "previous_turn": "What should I do?",
+      "next_turn": "What what do you mean, professional?"
+    },
+    {
+      "item_id": "first40-0016",
+      "candidate_index": 15,
+      "utterance": "Do you have a nandakkena denim jacket",
+      "utterance_sha1": "582cfc56e2c8cd3c135703d4f9b89a0307a8369d",
+      "previous_turn": "O K. So, May I help you?",
+      "next_turn": "Yeah. We do. We have uhh several kinds of jacket."
+    },
+    {
+      "item_id": "first40-0017",
+      "candidate_index": 16,
+      "utterance": "How do I select the present",
+      "utterance_sha1": "6b3659fac5983a5cd4d2df9bfec545d230d3bbf3",
+      "previous_turn": "I see. All right. Mm . So, er when you buy present for somebody, how do you select the present?",
+      "next_turn": "Yes."
+    },
+    {
+      "item_id": "first40-0018",
+      "candidate_index": 17,
+      "utterance": "Erm And how are you",
+      "utterance_sha1": "034438b7a975e7c2eb7323b46995efb12a89a934",
+      "previous_turn": "Good.",
+      "next_turn": "I'm fine, thank you."
+    },
+    {
+      "item_id": "first40-0019",
+      "candidate_index": 18,
+      "utterance": "Are you free on this weekend",
+      "utterance_sha1": "72246537400d3da5e813245d47675038b12642f5",
+      "previous_turn": "Oh . Hi, XXX01 .",
+      "next_turn": "Oh . Sounds great."
+    },
+    {
+      "item_id": "first40-0020",
+      "candidate_index": 19,
+      "utterance": "Oh and do you have any bro brochure for the tour",
+      "utterance_sha1": "c7f284d742669863dffa3cd8d18b93a21118c475",
+      "previous_turn": "Yeah. And close to the beach.",
+      "next_turn": "Yes, here you go."
+    },
+    {
+      "item_id": "first40-0021",
+      "candidate_index": 20,
+      "utterance": "can I bring it back",
+      "utterance_sha1": "bdc0c76efa82534eafd53340754c6848e069547a",
+      "previous_turn": "O K, right, er yes ma'am, may I help you?",
+      "next_turn": "O K. I'm sorry ma'am er but we have a store policy. er We don't accept any returned er goods."
+    },
+    {
+      "item_id": "first40-0022",
+      "candidate_index": 21,
+      "utterance": "What kind of type",
+      "utterance_sha1": "c66f8796a535c7c561396661bdd789025f541a71",
+      "previous_turn": "with that size .",
+      "next_turn": "O K. Ah this this one is ah Brigi Bridgestone and the other one is made in Korea."
+    },
+    {
+      "item_id": "first40-0023",
+      "candidate_index": 22,
+      "utterance": "Does that mean I'm up?",
+      "utterance_sha1": "1d447a138296280493375923fc83600841694fbe",
+      "previous_turn": "'Kay",
+      "next_turn": "yep that's you."
+    },
+    {
+      "item_id": "first40-0024",
+      "candidate_index": 23,
+      "utterance": "shall we hear from Marketing first?",
+      "utterance_sha1": "d7bc39cba4dd33aa3fc09fac25955ca5297d16ff",
+      "previous_turn": "three presentations, I've got written here so",
+      "next_turn": "Um is it okay if I postpone that til later"
+    },
+    {
+      "item_id": "first40-0025",
+      "candidate_index": 24,
+      "utterance": "Yes, did you get the time?",
+      "utterance_sha1": "360ab8a9acaff2fcc24b02a9f794debe566919e3",
+      "previous_turn": "Okay so that's 6 people for 4:30 at Firepie on the 28th right?",
+      "next_turn": "4:30 pm."
+    },
+    {
+      "item_id": "first40-0026",
+      "candidate_index": 25,
+      "utterance": "Okay, great. Is there a third option?",
+      "utterance_sha1": "6f437e1069bf49703ae11e4f5b78310f590fb9d9",
+      "previous_turn": "applebee's grill and bar is described as a Full-service chain bar & grill providing hearty American eats in an informal setting.",
+      "next_turn": "i can find one, one moment."
+    },
+    {
+      "item_id": "first40-0027",
+      "candidate_index": 26,
+      "utterance": "Cool. That's a cool cast.",
+      "utterance_sha1": "12b3e05653ec20aa30b95e51e5e6ae907a48cd10",
+      "previous_turn": "sure, that would be lana condor, michelle rodriguez, casper van dien, and christoph waltz.",
+      "next_turn": "ah, actually. my apologies. it's actually sold out for that showtime. did u want the next available showtime, which is 11:30am."
+    },
+    {
+      "item_id": "first40-0028",
+      "candidate_index": 27,
+      "utterance": "I'm doing great. How about yourself?",
+      "utterance_sha1": "2db4e633b43d977bea4d241a7fdaa1b58bcfe2c1",
+      "previous_turn": "Hi, how are you today?",
+      "next_turn": "Great! thanks, how can I help you?"
+    },
+    {
+      "item_id": "first40-0029",
+      "candidate_index": 28,
+      "utterance": "That's great. Could you please book that for me?",
+      "utterance_sha1": "05eac1cb0f1f417850267e4d3227d3c40a83ddc9",
+      "previous_turn": "is this ok.",
+      "next_turn": "ok, a reservation for 2 people at matador at 8:30pm."
+    },
+    {
+      "item_id": "first40-0030",
+      "candidate_index": 29,
+      "utterance": "Yeah. That'd be great. There You said there was a four something. How about that one?",
+      "utterance_sha1": "b758cdd8250069cf515f10747b48dfe5f7da76e1",
+      "previous_turn": "i've searched for that showtime, and unfortunately, it's sold out. did you want one of the later show times instead?",
+      "next_turn": "4:35 p.m."
+    },
+    {
+      "item_id": "first40-0031",
+      "candidate_index": 30,
+      "utterance": "But the most important thing is that it looks great",
+      "utterance_sha1": "2d27ae4a16ef26e780bad12504233252d9aa360c",
+      "previous_turn": "Yeah, right.",
+      "next_turn": "and people say wow, that's real great uh great concept."
+    },
+    {
+      "item_id": "first40-0032",
+      "candidate_index": 31,
+      "utterance": "Uhm Before that, I really hate hated",
+      "utterance_sha1": "1820fd415fe38c1b59a5a4c49908e0f39c82ac0e",
+      "previous_turn": "Uhmm .",
+      "next_turn": ""
+    },
+    {
+      "item_id": "first40-0033",
+      "candidate_index": 32,
+      "utterance": "And and this that makes um my parents angry",
+      "utterance_sha1": "cec675a677d86628562e81dec7436656c54b7e04",
+      "previous_turn": "Um uh tell me about yourself.",
+      "next_turn": "Er I see . So what do you think about it?"
+    },
+    {
+      "item_id": "first40-0034",
+      "candidate_index": 33,
+      "utterance": "Great. How long is the trip?",
+      "utterance_sha1": "9fc826f9e6e0f47b89e5a7749ec76788c9445767",
+      "previous_turn": "Got it. your driver will arrive at 9pm and notify you via mobile when they're on their way.",
+      "next_turn": "10 minutes."
+    },
+    {
+      "item_id": "first40-0035",
+      "candidate_index": 34,
+      "utterance": "Excellent. How are the reviews for Buca di Beppo, is it generally positive?",
+      "utterance_sha1": "649f84eed725af869bc7c8010e39a28d24454a93",
+      "previous_turn": "yes, they are. they also have a children's menu.",
+      "next_turn": "the reviews are positive, with a 4.1 star rating, and 1014 reviews on google."
+    },
+    {
+      "item_id": "first40-0036",
+      "candidate_index": 35,
+      "utterance": "we definitely know that um it's gonna be a simple buttons",
+      "utterance_sha1": "510ff4d15e3f85e401f806193099c501984e7815",
+      "previous_turn": "Mm.",
+      "next_turn": "we're not gonna be going for the new technological chip on print expensive things, so we've we're keeping the costs down."
+    },
+    {
+      "item_id": "first40-0037",
+      "candidate_index": 36,
+      "utterance": "It doesn't really matter.",
+      "utterance_sha1": "fa4bb51bc2f5307b4cc8d3a50d42d58d609b9ceb",
+      "previous_turn": "(deleted)",
+      "next_turn": "is regular milk ok?"
+    },
+    {
+      "item_id": "first40-0038",
+      "candidate_index": 37,
+      "utterance": "What is the other chip for? The one on top.",
+      "utterance_sha1": "78618aa1b4e78fe5b283c31928bae5d31ed37b7f",
+      "previous_turn": "This.",
+      "next_turn": "The one on top is for the um well the functionali the functionalities"
+    },
+    {
+      "item_id": "first40-0039",
+      "candidate_index": 38,
+      "utterance": "they are very excited and that that attitude was very different from Japanese people",
+      "utterance_sha1": "443d3d08c5dcee694228b1ecffe0ffe99eba0ddd",
+      "previous_turn": "O K.",
+      "next_turn": "Oh I see. O K. Do you want to live there some day in the future?"
+    },
+    {
+      "item_id": "first40-0040",
+      "candidate_index": 39,
+      "utterance": "Er do you know",
+      "utterance_sha1": "0d3475a30433ea2640a1c6a8c7b7195b018f5bf6",
+      "previous_turn": "Oh O K. Where do you live?",
+      "next_turn": "Not really. What kind of place is XXX03 ?"
+    }
+  ],
+  "slot_order": {
+    "A": [
+      "first40-0014",
+      "first40-0015",
+      "first40-0022",
+      "first40-0010",
+      "first40-0033",
+      "first40-0028",
+      "first40-0024",
+      "first40-0009",
+      "first40-0018",
+      "first40-0038",
+      "first40-0036",
+      "first40-0020",
+      "first40-0019",
+      "first40-0027",
+      "first40-0023",
+      "first40-0002",
+      "first40-0032",
+      "first40-0005",
+      "first40-0026",
+      "first40-0013",
+      "first40-0037",
+      "first40-0003",
+      "first40-0016",
+      "first40-0029",
+      "first40-0025",
+      "first40-0021",
+      "first40-0006",
+      "first40-0040",
+      "first40-0017",
+      "first40-0030",
+      "first40-0001",
+      "first40-0012",
+      "first40-0031",
+      "first40-0007",
+      "first40-0035",
+      "first40-0011",
+      "first40-0039",
+      "first40-0008",
+      "first40-0034",
+      "first40-0004"
+    ],
+    "B": [
+      "first40-0012",
+      "first40-0017",
+      "first40-0016",
+      "first40-0014",
+      "first40-0035",
+      "first40-0005",
+      "first40-0023",
+      "first40-0025",
+      "first40-0010",
+      "first40-0024",
+      "first40-0036",
+      "first40-0031",
+      "first40-0034",
+      "first40-0020",
+      "first40-0030",
+      "first40-0002",
+      "first40-0032",
+      "first40-0011",
+      "first40-0003",
+      "first40-0037",
+      "first40-0009",
+      "first40-0040",
+      "first40-0039",
+      "first40-0001",
+      "first40-0038",
+      "first40-0033",
+      "first40-0022",
+      "first40-0015",
+      "first40-0007",
+      "first40-0019",
+      "first40-0013",
+      "first40-0027",
+      "first40-0004",
+      "first40-0028",
+      "first40-0021",
+      "first40-0008",
+      "first40-0026",
+      "first40-0018",
+      "first40-0006",
+      "first40-0029"
+    ]
+  }
+}

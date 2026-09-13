@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
-"""Convert a completed blind review CSV into labeled JSONL rows."""
+"""Convert a completed blind review CSV into labeled JSONL rows.
+
+Two schemas, matching ``scripts/export_axis_review_csv.py``:
+
+* legacy -- one CSV with ``review_id``, matched positionally to a candidate
+  file. Output is one row per item.
+* batch  -- one CSV per reviewer slot plus a manifest. Output is one *raw*
+  row per (item, reviewer slot); aggregation and adjudication are a separate
+  step (``scripts/aggregate_axis_reviews.py``) so raw scores stay immutable.
+"""
 
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -14,6 +24,8 @@ AXIS_KEYS = ("Formality", "Energy", "Intimacy", "Humor", "Curiosity")
 REVIEW_AXES = {
     "all": AXIS_KEYS,
     "energy-curiosity": ("Energy", "Curiosity"),
+    "energy-humor": ("Energy", "Humor"),
+    "energy-curiosity-intimacy": ("Energy", "Curiosity", "Intimacy"),
 }
 
 
@@ -117,20 +129,123 @@ def write_jsonl(rows: list[dict[str, Any]], output_path: Path) -> None:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def _utterance_sha1(text: str) -> str:
+    return hashlib.sha1(str(text).strip().encode("utf-8")).hexdigest()
+
+
+def load_batch_reviews(
+    slot_csv_paths: list[Path],
+    manifest: dict[str, Any],
+    candidates: list[dict[str, Any]],
+    labeler: str,
+) -> list[dict[str, Any]]:
+    """Read one CSV per reviewer slot, validated against the manifest.
+
+    Primary key is ``(annotation_batch, item_id, reviewer_slot)``. The same
+    ``item_id`` appears once per slot; a repeat within one slot is an error.
+    Output keeps every raw reviewer score (no averaging here).
+    """
+    annotation_batch = str(manifest["annotation_batch"])
+    dataset_partition = str(manifest["dataset_partition"])
+    scored_axes = tuple(manifest["scored_axes"])
+    by_item = {item["item_id"]: item for item in manifest["items"]}
+    candidate_by_index = {index: row for index, row in enumerate(candidates)}
+
+    seen_keys: set[tuple[str, str, str]] = set()
+    converted: list[dict[str, Any]] = []
+    for path in slot_csv_paths:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        if not rows:
+            raise ReviewError(f"{path.name}: review CSV is empty")
+        for row_number, row in enumerate(rows, start=1):
+            where = f"{path.name} row {row_number}"
+            if (row.get("annotation_batch") or "").strip() != annotation_batch:
+                raise ReviewError(f"{where}: annotation_batch != {annotation_batch!r}")
+            if (row.get("review_status") or "").strip().lower() != "completed":
+                raise ReviewError(f"{where}: review_status must be completed")
+            item_id = (row.get("item_id") or "").strip()
+            slot = (row.get("reviewer_slot") or "").strip()
+            if not slot:
+                raise ReviewError(f"{where}: missing reviewer_slot")
+            if slot not in manifest["slots"]:
+                raise ReviewError(f"{where}: reviewer_slot {slot!r} not in manifest slots {manifest['slots']}")
+            item = by_item.get(item_id)
+            if item is None:
+                raise ReviewError(f"{where}: unknown item_id {item_id!r}")
+            key = (annotation_batch, item_id, slot)
+            if key in seen_keys:
+                raise ReviewError(f"{where}: duplicate (batch, item_id, reviewer_slot) {key}")
+            seen_keys.add(key)
+            utterance = (row.get("utterance") or "").strip()
+            if _utterance_sha1(utterance) != item["utterance_sha1"]:
+                raise ReviewError(f"{where}: utterance does not match manifest item {item_id}")
+            reviewer_id = (row.get("reviewer_id") or "").strip()
+            if not reviewer_id:
+                raise ReviewError(f"{where}: missing reviewer_id")
+            candidate = candidate_by_index.get(item["candidate_index"], {})
+            axes = {axis: parse_score(row, row_number, axis) for axis in scored_axes}
+            converted.append(
+                {
+                    "utterance": utterance,
+                    "axes": axes,
+                    "label_source": {axis: "human" for axis in axes},
+                    "style": "conversation",
+                    "split": dataset_partition,
+                    "dataset_partition": dataset_partition,
+                    "annotation_batch": annotation_batch,
+                    "item_id": item_id,
+                    "reviewer_slot": slot,
+                    "reviewer_id": reviewer_id,
+                    "notes": row.get("reviewer_notes", ""),
+                    "source": candidate.get("source", "unknown"),
+                    "source_group": candidate.get("source_group", ""),
+                    "source_record_id": candidate.get("source_record_id", ""),
+                    "focus_bucket": candidate.get("focus_bucket", ""),
+                    "label_status": "human_reviewed_blind_raw",
+                    "labeler": labeler,
+                    "review_axes": list(scored_axes),
+                }
+            )
+
+    # Require completeness only for the slots actually supplied (a batch may be
+    # imported before every reviewer has finished). Each supplied slot must
+    # cover all items.
+    supplied_slots = {slot for _, _, slot in seen_keys}
+    expected = {
+        (annotation_batch, item_id, slot)
+        for slot in supplied_slots
+        for item_id in by_item
+    }
+    missing = expected - seen_keys
+    if missing:
+        raise ReviewError(f"batch import missing {len(missing)} (item, slot) rows, e.g. {sorted(missing)[:3]}")
+    return converted
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--input", type=Path, action="append", required=True,
+                        help="review CSV; repeat once per reviewer slot in batch mode")
     parser.add_argument("--candidates", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--labeler", default="human_blind_review")
     parser.add_argument("--axes", choices=tuple(REVIEW_AXES), default="all")
+    parser.add_argument("--manifest", type=Path, default=None,
+                        help="manifest JSON from export_axis_review_csv --annotation-batch (switches to batch mode)")
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
     try:
-        rows = load_review_csv(args.input, load_jsonl(args.candidates), args.labeler, args.axes)
+        if args.manifest:
+            manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+            rows = load_batch_reviews(args.input, manifest, load_jsonl(args.candidates), args.labeler)
+        else:
+            if len(args.input) != 1:
+                raise ReviewError("legacy mode takes exactly one --input (use --manifest for batch mode)")
+            rows = load_review_csv(args.input[0], load_jsonl(args.candidates), args.labeler, args.axes)
     except ReviewError as exc:
         raise SystemExit(f"review CSV is not complete: {exc}") from exc
     write_jsonl(rows, args.output)

@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
-"""Diagnose the AI-draft "teacher" labeler against frozen human gold labels.
+"""Diagnose the AI-draft "teacher" labeler against the gold-200 dev labels.
 
-This does not use any human review. It re-applies the same draft_axes()
-rubric that produced the 3,137-row experimental training set's AI-draft rows
-(scripts/draft_label_nict_jle_candidates.py, reused verbatim across NICT,
-AMI, CHiME-6, HCRC Map Task, and Taskmaster-1 WoZ during dataset construction)
-to the 200 gold utterances, then compares that reconstructed draft label to
-the real human-reviewed gold label per axis.
+This compares the `draft_axes()` rubric (scripts/draft_label_nict_jle_candidates.py)
+to the human-reviewed gold labels per axis. The gold-200 set is a dev /
+diagnosis set (see docs/ml-transition-contract.md), not the frozen
+acceptance test.
 
-The gold candidates were never given a `sample_bucket` (they used a
-different `focus_bucket` energy/curiosity scheme for stratified sampling
-instead), so draft_axes() falls back to its default bucket
-("personal_statement") for every row here. That only shifts each axis's
-mean by a constant, bucket-driven offset -- it does not add per-row noise --
-so it does not distort rank correlation (Spearman) or the shape of the error
-distribution, only the additive mean bias, which this script reports
-separately anyway.
+Bucket assumption (important): the gold candidates carry no `sample_bucket`,
+so `draft_axes()` falls back to its default bucket for every row here. This
+is NOT a neutral choice. `draft_axes()` applies a different additive offset
+*per bucket*, so assigning a real bucket per row changes both the mean bias
+and the rank correlation -- it is not a single constant shift. Empirically,
+running `scripts/bucket_sensitivity_gold200.py` moves e.g. Intimacy rho from
+~0.09 (default bucket) to ~0.29 (per-row classifier) on this dev set. Read
+this script's numbers as "default-bucket assumption" results and cross-check
+with bucket_sensitivity_gold200.py before drawing a conclusion about any
+axis.
+
+Also note the two `classify_bucket` implementations disagree on NICT for
+132/600 training rows, and `draft_axes()` does not reproduce the stored NICT
+training labels on 221/600 rows -- so "the same teacher built the 3,137-row
+set" is only approximately true. bucket_sensitivity_gold200.py quantifies
+both.
 
 Run from the repository root:
   python scripts/diagnose_gold_vs_ai_draft.py
@@ -66,12 +72,28 @@ def _pearson(left: list[float], right: list[float]) -> float:
     left_den = sum((a - left_mean) ** 2 for a in left) ** 0.5
     right_den = sum((b - right_mean) ** 2 for b in right) ** 0.5
     if left_den == 0 or right_den == 0:
-        return 0.0
+        # constant on one side -> rank correlation is undefined, not 0.0
+        return float("nan")
     return numerator / (left_den * right_den)
 
 
 def _spearman(human: list[float], draft: list[float]) -> float:
     return _pearson(_rank(human), _rank(draft))
+
+
+def _constant_side(human: list[float], draft: list[float]) -> str:
+    """When Spearman is NaN, say which side collapsed: a constant human column
+    means the dev set has no signal to rank on that axis; a constant draft
+    column means the teacher is degenerate on that axis."""
+    human_constant = len(set(human)) <= 1
+    draft_constant = len(set(draft)) <= 1
+    if human_constant and draft_constant:
+        return "both constant"
+    if human_constant:
+        return "human gold constant (dev set lacks signal on this axis)"
+    if draft_constant:
+        return "draft constant (teacher degenerate on this axis)"
+    return "undefined"
 
 
 def _std(values: list[float]) -> float:
@@ -113,8 +135,12 @@ def main() -> None:
     gold_rows = load_jsonl(DEFAULT_GOLD_PATH)
     print(f"gold_rows={len(gold_rows)}")
     print(f"gold_path={DEFAULT_GOLD_PATH}")
-    print("draft rubric: scripts/draft_label_nict_jle_candidates.py:draft_axes() (same teacher used to build the 3,137-row training set)")
-    print("note: gold rows carry no sample_bucket -> draft_axes() falls back to its default bucket for every row here")
+    print("draft rubric: scripts/draft_label_nict_jle_candidates.py:draft_axes()")
+    print("  (approx. the teacher for the 3,137-row set: does not reproduce stored NICT labels")
+    print("   on 221/600 rows; see scripts/bucket_sensitivity_gold200.py)")
+    print("bucket assumption: gold rows carry no sample_bucket -> default-bucket fallback for every row.")
+    print("  This shifts bias AND rank per axis, not just a constant. Cross-check with")
+    print("  scripts/bucket_sensitivity_gold200.py before concluding anything per axis.")
     print()
 
     per_axis_human: dict[str, list[float]] = {axis: [] for axis in AXIS_KEYS}
@@ -132,6 +158,7 @@ def main() -> None:
     print(header)
     print("-" * len(header))
     summary_rows = []
+    na_axes: list[str] = []
     for axis in AXIS_KEYS:
         human = per_axis_human[axis]
         draft = per_axis_draft[axis]
@@ -144,8 +171,15 @@ def main() -> None:
         human_sd = _std(human)
         draft_sd = _std(draft)
         sd_ratio = draft_sd / human_sd if human_sd else float("inf")
-        print(f"{axis:<10} {n:>4} {spearman:>9.2f} {mae:>7.2f} {bias:>+7.2f} {human_sd:>9.2f} {draft_sd:>9.2f} {sd_ratio:>9.2f}")
+        if spearman != spearman:  # NaN
+            na_axes.append(axis)
+            print(f"{axis:<10} {n:>4} {'n/a':>9} {mae:>7.2f} {bias:>+7.2f} {human_sd:>9.2f} {draft_sd:>9.2f} {sd_ratio:>9.2f}   <- {_constant_side(human, draft)}")
+        else:
+            print(f"{axis:<10} {n:>4} {spearman:>9.2f} {mae:>7.2f} {bias:>+7.2f} {human_sd:>9.2f} {draft_sd:>9.2f} {sd_ratio:>9.2f}")
         summary_rows.append((axis, spearman, mae, bias, human_sd, draft_sd, sd_ratio))
+
+    valid = len(summary_rows) - len(na_axes)
+    print(f"{'valid_axes':<10} {valid}/{len(summary_rows)}" + (f"  (n/a: {', '.join(na_axes)})" if na_axes else ""))
 
     print()
     print("Quantiles (human vs draft)")

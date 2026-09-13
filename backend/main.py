@@ -39,11 +39,11 @@ from ai.matrix_engine import apply_ema, compute_character, describe_character
 from ai.reply_shaping import shape_reply
 
 try:
-    from lib.supabase import get_supabase
+    from lib.supabase import get_supabase as _get_supabase_raw
     _SUPABASE_ENABLED = True
 except Exception:
     _SUPABASE_ENABLED = False
-    get_supabase = None  # type: ignore
+    _get_supabase_raw = None  # type: ignore
 
 # AI 담당 제공: generate_feedback(utterance, pally_reply, level) -> (items, failed).
 # 없으면 None → turn 의 feedback 은 [] (실패 아님, 미구현).
@@ -172,8 +172,113 @@ def _error_body(code: str, message: str, request_id: str, details: Optional[dict
     return {"error": error}
 
 
+def _is_transport_error(exc: BaseException) -> bool:
+    """Supabase 호출이 '연결' 때문에 실패했는지 판별 (죽은 keep-alive 커넥션·타임아웃 등).
+    무효 토큰 같은 논리적 거절(AuthApiError)과 구분하기 위해 쓴다."""
+    return isinstance(exc, httpx.TransportError)
+
+
+def _reset_supabase_client() -> None:
+    """죽은 커넥션을 물고 있는 Supabase 싱글톤을 폐기해, 다음 호출에서 새 커넥션으로
+    재생성되게 한다. lib/supabase.py(다른 담당 영역)는 수정하지 않고 모듈 전역만 비운다.
+    이게 없으면 Supabase 가 잠시 끊겼다 복구돼도 프로세스를 재배포할 때까지 계속 실패한다."""
+    try:
+        import lib.supabase as _sb_module
+        _sb_module._client = None
+    except Exception as e:
+        logging.warning(f"supabase client reset failed (non-fatal): {e}")
+
+
+# 쓰기 재시도는 "요청이 서버에서 처리되지 않은 것이 확실한" 실패에만 허용한다.
+# ReadTimeout 등은 서버가 이미 처리했을 수 있어 재시도하면 중복 실행 위험이 있다.
+_WRITE_OPS = {"insert", "update", "upsert", "delete"}
+
+# Supabase 가 HTTP/2 GOAWAY(ConnectionTerminated)로 커넥션을 주기적으로 정리한다.
+# httpx 는 이를 RemoteProtocolError 로 올리는데, GOAWAY 규약상 last_stream_id 이후의
+# 요청은 서버가 처리하지 않았음이 보장되므로 쓰기라도 재시도해도 중복되지 않는다.
+_WRITE_SAFE_RETRY = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError)
+
+
+def _should_retry(exc: BaseException, is_write: bool) -> bool:
+    if is_write:
+        return isinstance(exc, _WRITE_SAFE_RETRY)
+    return _is_transport_error(exc)
+
+
+class _QueryStep:
+    """빌더의 한 단계. 호출되면 메서드 호출로, 그대로 속성을 더 타고 가면 속성 접근으로
+    기록한다. postgrest 의 `q.not_.is_(...)` 처럼 호출 없는 속성 체이닝을 지원하기 위함."""
+
+    def __init__(self, query, name):
+        self._query = query
+        self._name = name
+
+    def __call__(self, *args, **kwargs):
+        self._query._ops.append(("call", self._name, args, kwargs))
+        return self._query
+
+    def __getattr__(self, name):
+        self._query._ops.append(("attr", self._name, (), {}))
+        return _QueryStep(self._query, name)
+
+
+class _RetryingQuery:
+    """PostgREST 쿼리 빌더 프록시. 체이닝을 기록해 두었다가 execute() 에서 실행하고,
+    죽은 커넥션 때문에 실패하면 클라이언트를 폐기한 뒤 새 커넥션으로 1회 재시도한다."""
+
+    def __init__(self, build):
+        self._build = build   # () -> 새 클라이언트에서 시작하는 빌더
+        self._ops = []        # ("call"|"attr", name, args, kwargs)
+
+    def __getattr__(self, name):
+        return _QueryStep(self, name)
+
+    def _run(self):
+        query = self._build()
+        for kind, name, args, kwargs in self._ops:
+            query = getattr(query, name) if kind == "attr" else getattr(query, name)(*args, **kwargs)
+        return query.execute()
+
+    def execute(self):
+        try:
+            return self._run()
+        except Exception as e:
+            is_write = any(name in _WRITE_OPS for _, name, _, _ in self._ops)
+            if not _should_retry(e, is_write):
+                raise
+            logging.warning(f"DB transport error, retrying with fresh client: {e}")
+            _reset_supabase_client()
+            return self._run()
+
+
+class _RetryingSupabase:
+    """get_supabase() 가 돌려주는 클라이언트 래퍼. table()/rpc() 만 재시도로 감싸고
+    auth 등 나머지는 원본 클라이언트에 그대로 위임한다. 호출부는 수정하지 않는다."""
+
+    def table(self, name):
+        return _RetryingQuery(lambda: _get_supabase_raw().table(name))
+
+    def rpc(self, fn_name, params=None):
+        if params is None:
+            return _RetryingQuery(lambda: _get_supabase_raw().rpc(fn_name))
+        return _RetryingQuery(lambda: _get_supabase_raw().rpc(fn_name, params))
+
+    def __getattr__(self, name):
+        return getattr(_get_supabase_raw(), name)
+
+
+def get_supabase():
+    """Supabase 클라이언트(재시도 래퍼). 죽은 커넥션으로 인한 일시적 실패가
+    사용자에게 503 으로 보이지 않도록 호출부 수정 없이 한 곳에서 방어한다."""
+    return _RetryingSupabase()
+
+
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):
+    # 503(연결·저장소 실패)은 커넥션이 죽었을 가능성이 있으므로 싱글톤을 폐기해
+    # 다음 요청이 새 커넥션으로 자가 회복하게 한다 (수동 재배포 없이 복구).
+    if exc.status_code == 503:
+        _reset_supabase_client()
     return JSONResponse(
         status_code=exc.status_code,
         content=_error_body(exc.code, exc.message, _request_id(request), exc.details),
@@ -927,11 +1032,28 @@ def _verify_bearer_user(authorization: Optional[str]):
         raise AppError(503, "service_unavailable", "Supabase is not configured")
 
     try:
-        sb = get_supabase()
-        user_res = sb.auth.get_user(token)
+        user_res = get_supabase().auth.get_user(token)
     except Exception as e:
-        logging.warning(f"Auth verification failed: {e}")
-        raise AppError(401, "unauthorized", "Invalid or expired token")
+        # 연결 실패를 "토큰 만료"로 응답하면 클라이언트가 원인을 오판한다.
+        # 전송 오류(죽은 커넥션 등)와 토큰 거절을 반드시 구분한다.
+        if _is_transport_error(e):
+            logging.warning(f"Auth transport error, retrying with fresh client: {e}")
+            _reset_supabase_client()
+            try:
+                user_res = get_supabase().auth.get_user(token)
+            except Exception as retry_e:
+                logging.error(f"Auth service unreachable after retry: {retry_e}")
+                raise AppError(503, "auth_unavailable",
+                               "인증 서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.")
+        else:
+            status = getattr(e, "status", None)
+            if isinstance(status, int) and status >= 500:
+                logging.error(f"Auth service error {status}: {e}")
+                raise AppError(503, "auth_unavailable",
+                               "인증 서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.")
+            # 인증 서버가 토큰을 명시적으로 거절한 경우만 401.
+            logging.warning(f"Token rejected by auth service: {e}")
+            raise AppError(401, "unauthorized", "Invalid or expired token")
 
     user = getattr(user_res, "user", None)
     if user is None or not getattr(user, "id", None):

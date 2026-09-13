@@ -1,0 +1,46 @@
+{
+  "seed": 20260910,
+  "reservoir_rows": 1200,
+  "blocked_groups": {
+    "ec120": 120,
+    "reserved": 156
+  },
+  "pool_rows_after_block": 887,
+  "pilot": {
+    "event_yield": 13,
+    "ami_nonlaugh_control": 9,
+    "disagree": {
+      "Energy": 8,
+      "Humor": 8
+    },
+    "residual": 16,
+    "total": 54,
+    "axes": [
+      "Energy",
+      "Humor"
+    ],
+    "source_mix": {
+      "ami_real": 22,
+      "nict_jle_real": 15,
+      "taskmaster1_woz_user_real": 17
+    }
+  },
+  "calibration": {
+    "per_source": {
+      "ami_real": 30,
+      "nict_jle_real": 30,
+      "taskmaster1_woz_user_real": 30
+    },
+    "per_source_target": 30,
+    "total": 90,
+    "axes": [
+      "Formality",
+      "Energy",
+      "Intimacy",
+      "Humor",
+      "Curiosity"
+    ],
+    "sizing": "30/source detects a >20pt per-axis reviewer gap occurring at >=10% within a source with >=95% probability per source (0.9**29<=0.05). Per-source, not simultaneous across sources."
+  },
+  "note": "calibration is a random sample of the candidate pool for inter-rater agreement + scale bias; not a natural-distribution performance estimate, no rare-case padding."
+}

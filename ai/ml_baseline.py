@@ -13,7 +13,7 @@ import os
 import re
 import sys
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +36,10 @@ class AxisTrainingExample:
     style: str
     source: str = ""
     source_group: str = ""
+    # axis -> provenance of that axis label ("human", "ai_draft", "seed", ...).
+    # Empty for legacy rows. Only populated when a dataset is loaded with
+    # allow_partial=True, where a row may carry a subset of the five axes.
+    label_source: dict[str, str] = field(default_factory=dict)
 
 
 def _tokenize(text: str) -> list[str]:
@@ -60,7 +64,37 @@ def _validate_axes(raw_axes: dict[str, Any]) -> dict[str, int]:
     return axes
 
 
-def _load_jsonl_axis_dataset(path: Path) -> list[AxisTrainingExample]:
+def _validate_partial_axes(raw_axes: dict[str, Any], min_axes: int = 1) -> dict[str, int]:
+    """Validate a label that may cover only a subset of the five axes.
+
+    A missing axis is allowed and simply omitted from the result. A present
+    axis must be a finite number in ``[0, 100]``; a NaN/inf or out-of-range
+    value is a hard error rather than being silently dropped or clamped, so a
+    malformed partial label never enters the training set unnoticed.
+    """
+    axes: dict[str, int] = {}
+    for key in AXIS_KEYS:
+        if key not in raw_axes or raw_axes[key] is None:
+            continue
+        value = float(raw_axes[key])
+        if not math.isfinite(value):
+            raise ValueError(f"{key} score must be finite, got {raw_axes[key]!r}")
+        if value < 0 or value > 100:
+            raise ValueError(f"{key} score must be between 0 and 100, got {value}")
+        axes[key] = int(value)
+    if len(axes) < min_axes:
+        raise ValueError(f"partial label needs at least {min_axes} axis score(s), got {sorted(axes)}")
+    return axes
+
+
+def _load_jsonl_axis_dataset(path: Path, *, allow_partial: bool = False) -> list[AxisTrainingExample]:
+    """Load a JSONL axis dataset.
+
+    With ``allow_partial=False`` (default, deployment path) every row must
+    carry all five axes. With ``allow_partial=True`` a row may carry a subset
+    of the axes; the per-axis provenance from an optional ``label_source``
+    object is retained so a caller can tell a human label from an AI draft.
+    """
     examples: list[AxisTrainingExample] = []
     with path.open("r", encoding="utf-8-sig") as file:
         for line_number, line in enumerate(file, start=1):
@@ -68,13 +102,21 @@ def _load_jsonl_axis_dataset(path: Path) -> list[AxisTrainingExample]:
             if not stripped:
                 continue
             item = json.loads(stripped)
+            if allow_partial:
+                label = _validate_partial_axes(item["axes"])
+                raw_source = item.get("label_source") or {}
+                label_source = {axis: str(raw_source[axis]) for axis in label if axis in raw_source}
+            else:
+                label = _validate_axes(item["axes"])
+                label_source = {}
             examples.append(
                 AxisTrainingExample(
                     utterance=str(item["utterance"]),
-                    label=_validate_axes(item["axes"]),
+                    label=label,
                     style=str(item.get("style", "conversation")),
                     source=str(item.get("source", "")),
                     source_group=str(item.get("source_group", "")),
+                    label_source=label_source,
                 )
             )
     if not examples:
@@ -120,9 +162,28 @@ class TfidfKnnAxisRegressor:
         self.idf: dict[str, float] = {}
         self.vectors: list[dict[str, float]] = []
 
-    def fit(self, examples: list[AxisTrainingExample]) -> "TfidfKnnAxisRegressor":
+    def fit(
+        self,
+        examples: list[AxisTrainingExample],
+        *,
+        require_full_axes: bool = False,
+    ) -> "TfidfKnnAxisRegressor":
         if not examples:
             raise ValueError("at least one training example is required")
+        if require_full_axes:
+            # Deployment adapter path: predict() indexes label[axis] directly,
+            # so a partial row here would surface as a KeyError mid-turn. Fail
+            # loudly at fit time instead.
+            incomplete = [
+                index
+                for index, example in enumerate(examples)
+                if any(axis not in example.label for axis in AXIS_KEYS)
+            ]
+            if incomplete:
+                raise ValueError(
+                    f"require_full_axes=True but {len(incomplete)} example(s) miss an axis "
+                    f"(first at index {incomplete[0]}); use predict_partial for subset labels"
+                )
         self.examples = examples
         doc_count = len(examples)
         document_frequency: Counter[str] = Counter()
@@ -152,6 +213,44 @@ class TfidfKnnAxisRegressor:
         for axis in AXIS_KEYS:
             value = sum(weight * self.examples[index].label[axis] for weight, index in weights) / total_weight
             prediction[axis] = max(0, min(100, round(value)))
+        return prediction
+
+    def predict_partial(self, utterance: str) -> dict[str, float | None]:
+        """Research-only per-axis prediction that tolerates subset labels.
+
+        For each axis the full similarity ranking is computed once, then the
+        first ``k`` neighbors that actually carry that axis are averaged with
+        similarity weights. Returns ``None`` for an axis when no training
+        example carries it (distinct from a degenerate all-similarity-zero
+        neighborhood, which still yields a number via the 0.001 weight floor,
+        matching ``predict``).
+
+        The result may contain ``None`` and non-integer values, so it does not
+        satisfy the ``AxisResult`` contract and must not be fed to the
+        deployment analyzers directly.
+        """
+        if not self.examples:
+            raise RuntimeError("model is not fitted")
+        query = self._vectorize(utterance)
+        similarities = sorted(
+            ((self._cosine(query, vector), index) for index, vector in enumerate(self.vectors)),
+            reverse=True,
+        )
+        prediction: dict[str, float | None] = {}
+        for axis in AXIS_KEYS:
+            picked: list[tuple[float, int]] = []
+            for similarity, index in similarities:
+                if axis in self.examples[index].label:
+                    picked.append((similarity, index))
+                    if len(picked) >= self.k:
+                        break
+            if not picked:
+                prediction[axis] = None
+                continue
+            weights = [(similarity if similarity > 0 else 0.001, index) for similarity, index in picked]
+            total_weight = sum(weight for weight, _ in weights)
+            value = sum(weight * self.examples[index].label[axis] for weight, index in weights) / total_weight
+            prediction[axis] = max(0.0, min(100.0, value))
         return prediction
 
     def _vectorize(self, utterance: str) -> dict[str, float]:

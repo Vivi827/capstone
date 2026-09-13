@@ -37,7 +37,9 @@ class MLAxisAnalyzer(AxisAnalyzer):
     """
 
     def __init__(self, model: TfidfKnnAxisRegressor | None = None) -> None:
-        self.model = model or TfidfKnnAxisRegressor().fit(load_default_axis_dataset())
+        self.model = model or TfidfKnnAxisRegressor().fit(
+            load_default_axis_dataset(), require_full_axes=True
+        )
         self._fallback = RuleBasedAxisAnalyzer()
 
     def analyze(self, utterance: str, context: dict[str, Any] | None = None) -> AxisResult:

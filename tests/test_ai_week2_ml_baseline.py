@@ -14,10 +14,19 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+import pytest
+
 from ai.analyzers import MLAxisAnalyzer, get_axis_analyzer
 from ai.contracts import AXIS_KEYS
 from ai.evaluate_axis_analyzers import split_by_source_group
-from ai.ml_baseline import AxisTrainingExample, TfidfKnnAxisRegressor, load_default_axis_dataset
+from ai.ml_baseline import (
+    AxisTrainingExample,
+    TfidfKnnAxisRegressor,
+    _load_jsonl_axis_dataset,
+    _validate_partial_axes,
+    load_default_axis_dataset,
+)
+from pathlib import Path
 
 
 def test_ml_axis_analyzer_returns_existing_contract() -> None:
@@ -103,6 +112,63 @@ def test_ml_dataset_relative_env_path_is_resolved_from_repo_root(monkeypatch) ->
     finally:
         if os.path.exists(dataset_path):
             os.remove(dataset_path)
+
+
+def _full_label(**overrides: int) -> dict[str, int]:
+    label = {axis: 50 for axis in AXIS_KEYS}
+    label.update(overrides)
+    return label
+
+
+def test_validate_partial_axes_keeps_subset_and_rejects_bad_values() -> None:
+    assert _validate_partial_axes({"Energy": 70, "Curiosity": 20}) == {"Energy": 70, "Curiosity": 20}
+    with pytest.raises(ValueError):
+        _validate_partial_axes({"Energy": 150})
+    with pytest.raises(ValueError):
+        _validate_partial_axes({"Energy": float("nan")})
+    with pytest.raises(ValueError):
+        _validate_partial_axes({}, min_axes=1)
+
+
+def test_load_partial_dataset_retains_label_source(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "partial.jsonl"
+    dataset_path.write_text(
+        '{"utterance":"wow really","axes":{"Energy":80},"label_source":{"Energy":"human"}}\n',
+        encoding="utf-8",
+    )
+    examples = _load_jsonl_axis_dataset(dataset_path, allow_partial=True)
+    assert examples[0].label == {"Energy": 80}
+    assert examples[0].label_source == {"Energy": "human"}
+
+
+def test_fit_require_full_axes_rejects_partial_rows() -> None:
+    partial = AxisTrainingExample("only energy", {"Energy": 60}, "conversation")
+    with pytest.raises(ValueError):
+        TfidfKnnAxisRegressor().fit([partial], require_full_axes=True)
+
+
+def test_predict_partial_returns_none_for_unlabeled_axis() -> None:
+    examples = [
+        AxisTrainingExample("great question about the plan", {"Energy": 70, "Curiosity": 80}, "conversation"),
+        AxisTrainingExample("tell me more about the plan", {"Energy": 40, "Curiosity": 75}, "conversation"),
+    ]
+    model = TfidfKnnAxisRegressor(k=2).fit(examples)
+    prediction = model.predict_partial("what about the plan")
+    assert prediction["Energy"] is not None
+    assert prediction["Curiosity"] is not None
+    assert prediction["Humor"] is None  # no training example carries Humor
+
+
+def test_predict_partial_filters_valid_neighbors_from_full_ranking() -> None:
+    # The nearest neighbor lacks Humor; predict_partial must skip it and still
+    # produce a Humor value from the next-best neighbor that has one.
+    examples = [
+        AxisTrainingExample("the quick brown fox jumps", {"Energy": 90}, "conversation"),
+        AxisTrainingExample("the quick brown fox naps", {"Energy": 20, "Humor": 65}, "conversation"),
+    ]
+    model = TfidfKnnAxisRegressor(k=1).fit(examples)
+    prediction = model.predict_partial("the quick brown fox")
+    assert prediction["Humor"] == pytest.approx(65.0)
 
 
 def run() -> None:

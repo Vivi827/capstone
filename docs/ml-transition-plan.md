@@ -1,5 +1,16 @@
 # ML Transition Plan
 
+> **STATUS 2026-09-10** — 이 문서 이후 두 번의 dual-AI 검토 사이클과 gold-200 사람
+> 검수가 진행됐다. 아래 내용 중 낡은 부분이 있다:
+> - **gold-200은 이제 "frozen acceptance test"가 아니라 "dev / diagnosis set"이다.**
+>   반복 진단에 이미 사용됨. 최종 판정은 `data/fixtures/ml_transition_reserved_final_test_pool.jsonl`
+>   (176행 / 156그룹, `final_gate` + `gate4_reproduction`)로만.
+> - **AMI는 최종 test 범위 밖**으로 명시됨 (현재 pool에 엄격 그룹 1개뿐). 후속 확보.
+> - 라벨 정밀도 · 검수 절차 · 평가 규약 · NA 정책 · gate #4 재현은
+>   **`docs/ml-transition-contract.md`가 authoritative.** 충돌 시 contract 우선.
+> - 진행 근거: `docs/ai-collab/DECISION.md` (실행 계획) 및
+>   `docs/ai-collab/archive/2026-09-07-*/`, `docs/ai-collab/archive/2026-09-08-*/`.
+
 ## Goal
 
 Make Pally's five-axis analyzer a single ML model. Hybrid remains a temporary
