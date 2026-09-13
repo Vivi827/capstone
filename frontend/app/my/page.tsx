@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { AccountDeletionDialog } from "@/components/dialogs/AccountDeletionDialog";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NameEditDialog } from "@/components/dialogs/NameEditDialog";
 import { MobileShell } from "@/components/layout/MobileShell";
@@ -11,7 +12,7 @@ import { BottomNav } from "@/components/nav/BottomNav";
 import { ProfileSummary } from "@/components/profile/ProfileSummary";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { pallyApi, PallyApiError } from "@/lib/api";
-import type { AccountDeletionStatusResponse, UserProfile } from "@/lib/api";
+import type { UserProfile } from "@/lib/api";
 import {
   clearUserRouteData,
   getCurrentUserId,
@@ -21,7 +22,6 @@ import {
 import { supabase } from "@/lib/supabase/client";
 
 type Dialog = "delete" | "logout" | "name" | "withdrawal" | null;
-const accountDeletionEnabled = process.env.NEXT_PUBLIC_ACCOUNT_DELETION_ENABLED === "true";
 
 export default function MyPage() {
   const router = useRouter();
@@ -30,7 +30,9 @@ export default function MyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [deletionStatus, setDeletionStatus] = useState<AccountDeletionStatusResponse>({ status: "none" });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [accountDeleted, setAccountDeleted] = useState(false);
+  const deletionInFlight = useRef(false);
   const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -66,22 +68,6 @@ export default function MyPage() {
     };
   }, [router]);
 
-  useEffect(() => {
-    if (!accountDeletionEnabled) return;
-    let active = true;
-    void pallyApi.getAccountDeletion()
-      .then((status) => {
-        if (active) setDeletionStatus(status);
-      })
-      .catch((caught: unknown) => {
-        if (caught instanceof PallyApiError && caught.code === "unauthorized") return;
-        console.error("Account deletion status failed", caught);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   const updateName = async (nextName: string) => {
     setError(null);
     try {
@@ -114,18 +100,36 @@ export default function MyPage() {
     router.push("/");
   };
 
-  const requestAccountDeletion = async () => {
+  const deleteAccount = async () => {
+    if (deletionInFlight.current || accountDeleted) return;
+    deletionInFlight.current = true;
+    setIsDeleting(true);
     setError(null);
     setNotice(null);
     try {
-      const status = await pallyApi.requestAccountDeletion({ reason: "user_requested" });
-      setDeletionStatus(status);
-      setDialog(null);
-      setNotice("회원탈퇴 요청을 접수했어요.");
+      await pallyApi.deleteAccount({ confirmation: "회원탈퇴" });
     } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "회원탈퇴를 완료하지 못했어요.");
       setDialog(null);
-      setError(caught instanceof Error ? caught.message : "회원탈퇴 요청을 접수하지 못했어요.");
+      deletionInFlight.current = false;
+      setIsDeleting(false);
+      return;
     }
+
+    setAccountDeleted(true);
+    setProfile(null);
+    setDialog(null);
+    const userId = userIdRef.current;
+    if (userId) clearUserRouteData(userId);
+    window.localStorage.removeItem("pally:conversationId");
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+    if (signOutError) {
+      console.error("Deleted account session cleanup failed", signOutError);
+      setNotice("계정과 기록이 삭제됐어요. 로그아웃 버튼을 눌러 로그인 정보를 정리해 주세요.");
+      setIsDeleting(false);
+      return;
+    }
+    window.location.replace("/");
   };
 
   if (isLoading) {
@@ -159,11 +163,11 @@ export default function MyPage() {
         <span aria-hidden="true"> | </span>
         <button
           className="hover:text-text disabled:cursor-not-allowed disabled:text-text-tertiary"
-          disabled={!accountDeletionEnabled || deletionStatus.status === "pending"}
+          disabled={isDeleting || accountDeleted}
           onClick={() => setDialog("withdrawal")}
           type="button"
         >
-          {deletionStatus.status === "pending" ? "회원탈퇴 처리 중" : accountDeletionEnabled ? "회원탈퇴" : "회원탈퇴(준비 중)"}
+          {accountDeleted ? "회원탈퇴 완료" : isDeleting ? "탈퇴 처리 중..." : "회원탈퇴"}
         </button>
       </div>
       <BottomNav />
@@ -171,13 +175,11 @@ export default function MyPage() {
       {dialog === "name" && profile ? <NameEditDialog initialName={profile.display_name} onCancel={() => setDialog(null)} onConfirm={(nextName) => { void updateName(nextName); }} /> : null}
       {dialog === "delete" ? <ConfirmDialog body="대화 기록 삭제 API가 아직 준비되지 않았어요." confirmLabel="확인" onCancel={() => setDialog(null)} onConfirm={() => showUnavailableDeletion("대화 기록 삭제는 백엔드 준비 후 사용할 수 있어요.")} title="데이터 삭제 준비 중" variant="compact" /> : null}
       {dialog === "logout" ? <ConfirmDialog body="현재 계정에서 로그아웃할까요?" confirmLabel="로그아웃" onCancel={() => setDialog(null)} onConfirm={() => { void logout(); }} title="로그아웃할까요?" variant="compact" /> : null}
-      {dialog === "withdrawal" && accountDeletionEnabled ? (
-        <ConfirmDialog
-          body="탈퇴 요청 후 데이터는 정책에 따라 보관된 뒤 삭제돼요. 계속할까요?"
-          confirmLabel="탈퇴 요청"
-          onCancel={() => setDialog(null)}
-          onConfirm={() => { void requestAccountDeletion(); }}
-          title="회원탈퇴를 요청할까요?"
+      {dialog === "withdrawal" ? (
+        <AccountDeletionDialog
+          isDeleting={isDeleting}
+          onCancel={() => { if (!deletionInFlight.current) setDialog(null); }}
+          onConfirm={() => { void deleteAccount(); }}
         />
       ) : null}
     </MobileShell>

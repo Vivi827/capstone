@@ -1,3 +1,5 @@
+import { rejects } from "node:assert/strict";
+
 import { mockPallyApi, resetMockPallyApi } from "../lib/api/mock-client";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -62,10 +64,9 @@ async function main(): Promise<void> {
   });
   assert(checkout.checkout.product_id === products.products[0].id, "Checkout must preserve the selected product");
 
-  const deletionBefore = await mockPallyApi.getAccountDeletion();
-  assert(deletionBefore.status === "none", "Account deletion must start inactive");
-  const deletionAfter = await mockPallyApi.requestAccountDeletion({ reason: "test" });
-  assert(deletionAfter.status === "pending", "Account deletion request must become pending");
+  const deletion = await mockPallyApi.deleteAccount({ confirmation: "회원탈퇴" });
+  assert(deletion.status === "deleted", "Account deletion must complete immediately");
+  await rejects(() => mockPallyApi.getProfile(), "Deleted accounts must not access profile data");
 
   resetMockPallyApi();
   console.log("Mock API contract check passed.");

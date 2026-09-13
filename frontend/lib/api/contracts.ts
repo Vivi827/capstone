@@ -180,16 +180,12 @@ export interface SubscriptionResponse {
   subscription: Subscription;
 }
 
-export interface AccountDeletionRequestInput {
-  reason?: string;
-  reauth_token?: string;
+export interface DeleteAccountInput {
+  confirmation: "회원탈퇴";
 }
 
-export interface AccountDeletionStatusResponse {
-  status: "none" | "pending";
-  requested_at?: string | null;
-  purge_after?: string | null;
-  retention_days?: number;
+export interface DeleteAccountResponse {
+  status: "deleted";
 }
 
 export type ActivityEventType =
@@ -268,8 +264,7 @@ export interface PallyApi {
   createCheckout(input: CheckoutInput): Promise<CheckoutResponse>;
   getSubscription(): Promise<SubscriptionResponse>;
   refreshSubscription(): Promise<SubscriptionResponse>;
-  getAccountDeletion(): Promise<AccountDeletionStatusResponse>;
-  requestAccountDeletion(input: AccountDeletionRequestInput): Promise<AccountDeletionStatusResponse>;
+  deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResponse>;
 }
 
 export type ApiErrorCode =

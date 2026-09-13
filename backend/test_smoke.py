@@ -13,6 +13,83 @@ CI smoke test — 시크릿/실서비스 없이 도는 최소 검증.
 import main
 
 
+def test_account_deletion_authentication_and_confirmation(monkeypatch):
+    from fastapi.testclient import TestClient
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    sb = Mock()
+    sb.auth.get_user.return_value = SimpleNamespace(user=SimpleNamespace(id="caller-id"))
+    monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_SUPABASE_ENABLED", True)
+    client = TestClient(main.app)
+    response = client.request("DELETE", "/api/account", json={"confirmation": "회원탈퇴"})
+    assert response.status_code == 401
+    for payload in ({}, {"confirmation": "yes"}, {"confirmation": "회원탈퇴", "user_id": "victim-id"}):
+        response = client.request("DELETE", "/api/account", headers={"Authorization": "Bearer test"}, json=payload)
+        assert response.status_code == 422
+    sb.auth.admin.delete_user.assert_not_called()
+
+
+def test_account_deletion_only_deletes_verified_user(monkeypatch):
+    from fastapi.testclient import TestClient
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    sb = Mock()
+    sb.auth.get_user.return_value = SimpleNamespace(user=SimpleNamespace(id="caller-id"))
+    sb.rpc.return_value.execute.return_value = SimpleNamespace(data=True)
+    monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_read_subscription", lambda *_: None)
+    monkeypatch.setattr(main, "_SUPABASE_ENABLED", True)
+    response = TestClient(main.app).request("DELETE", "/api/account", headers={"Authorization": "Bearer test"}, json={"confirmation": "회원탈퇴"})
+    assert response.status_code == 200
+    assert response.json() == {"status": "deleted"}
+    sb.auth.admin.delete_user.assert_called_once_with("caller-id", should_soft_delete=False)
+    sb.table.assert_not_called()
+
+
+def test_account_deletion_fails_closed(monkeypatch):
+    from fastapi.testclient import TestClient
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    sb = Mock()
+    sb.auth.get_user.return_value = SimpleNamespace(user=SimpleNamespace(id="caller-id"))
+    monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_SUPABASE_ENABLED", True)
+    monkeypatch.setattr(main, "_reset_supabase_client", lambda: None)
+    client = TestClient(main.app)
+    for ready, subscription, expected in ((False, None, 503), (True, {"will_renew": True}, 409)):
+        sb.rpc.return_value.execute.return_value = SimpleNamespace(data=ready)
+        monkeypatch.setattr(main, "_read_subscription", lambda *_, value=subscription: value)
+        response = client.request("DELETE", "/api/account", headers={"Authorization": "Bearer test"}, json={"confirmation": "회원탈퇴"})
+        assert response.status_code == expected
+    sb.auth.admin.delete_user.assert_not_called()
+
+    monkeypatch.setattr(main, "_read_subscription", lambda *_: None)
+    sb.auth.admin.delete_user.side_effect = RuntimeError("database unavailable")
+    response = client.request("DELETE", "/api/account", headers={"Authorization": "Bearer test"}, json={"confirmation": "회원탈퇴"})
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "account_deletion_failed"
+    assert "database unavailable" not in response.text
+    sb.table.assert_not_called()
+
+
+def test_legacy_deletion_request_cannot_delete_account(monkeypatch):
+    from fastapi.testclient import TestClient
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    sb = Mock()
+    sb.auth.get_user.return_value = SimpleNamespace(user=SimpleNamespace(id="caller-id"))
+    monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_SUPABASE_ENABLED", True)
+    response = TestClient(main.app).post("/api/account/deletion-request", headers={"Authorization": "Bearer test"}, json={"reason": "user_requested"})
+    assert response.status_code == 410
+    sb.auth.admin.delete_user.assert_not_called()
+
+
 def test_app_imports():
     assert main.app is not None
 
