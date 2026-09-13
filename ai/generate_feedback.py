@@ -41,8 +41,28 @@ Return ONLY valid JSON with exactly these three fields or an array of items:
   }
 ]
 
+Context:
+- The utterance is a speech-to-text (STT) transcript of spoken conversation
+  practice, not written text the user typed.
+- STT transcripts naturally have no sentence-initial capitalization and no
+  end punctuation (periods, question marks, commas). That is a transcription
+  artifact, not something the user got wrong.
+- Judge the utterance against spoken conversational English norms (구어체),
+  not formal written English norms (문어체).
+- "Pally" (or whatever name the user calls their conversation partner) is
+  the tutor's own name — a proper noun, never a misspelled word.
+
 Rules:
-- If the user's utterance does not need correction, return an empty array []
+- NEVER flag capitalization or punctuation (periods, commas, question marks)
+  as something to correct. Ignore these entirely, even when other real
+  issues are present in the same sentence.
+- NEVER flag proper nouns, names, or the tutor's own name as a spelling or
+  word-choice error.
+- Only return items for genuine grammar mistakes, verb tense/agreement
+  errors, or unnatural word choice — things that would still sound wrong in
+  casual spoken English.
+- If the user's utterance does not need correction (once capitalization and
+  punctuation are ignored), return an empty array []
 - Keep each explanation_ko brief (1-2 sentences)
 '''
 
