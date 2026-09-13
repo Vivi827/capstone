@@ -22,7 +22,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, field_validator
-from typing import Dict, Optional
+from typing import Dict, Literal, Optional
 
 load_dotenv()
 
@@ -2632,69 +2632,39 @@ async def billing_webhook(provider: str, request: Request):
     return Response(status_code=204)
 
 
-# ── Account deletion — 스캐폴드 (플래그 off + 재인증 fail-closed, 하드삭제 없음) ──
-# W7: 엔드포인트 골격만. 실제 활성화는 (1) PM 재인증 방식 확정 (2) 2년 보존 후 purge 잡
-# 구현 후. 그 전까지는 어떤 경로로도 데이터를 지우지 않는다 (이중 fail-closed).
+# ── Account deletion ──────────────────────────────────────────────────────────
 
-_ACCOUNT_DELETION_ENABLED = os.getenv("ACCOUNT_DELETION_ENABLED") == "1"
-_DELETION_RETENTION_DAYS = 730  # 2년 보존 (PM 확정)
-
-
-def _verify_reauth(user, payload: dict) -> bool:
-    """계정 삭제용 재인증 검증. PM 이 방식(비밀번호 재입력/OAuth 재동의/OTP)을 확정하기
-    전까지는 미구현 → 항상 False (fail-closed: 재인증 없이는 삭제를 절대 진행하지 않음)."""
-    return False
-
-
-class AccountDeletionRequest(BaseModel):
+class DeleteAccountRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    reason: Optional[str] = None
-    reauth_token: Optional[str] = None
+    confirmation: Literal["회원탈퇴"]
 
 
-@app.post("/api/account/deletion-request", status_code=202)
-async def request_account_deletion(
-    req: AccountDeletionRequest,
-    user=Depends(get_current_user),
-    _idem: str = Depends(require_idempotency_key),
-):
-    """계정 삭제 요청 (스캐폴드). 즉시 삭제하지 않고 2년 보존 후 정리 대상으로만 기록.
-    - 기능 플래그 off → 503 (기본값).
-    - 재인증 미구현 → 501 (fail-closed). PM 방식 확정 후 _verify_reauth 구현.
-    """
-    if not _ACCOUNT_DELETION_ENABLED:
-        raise AppError(503, "account_deletion_not_enabled",
-                       "계정 삭제 기능이 아직 활성화되지 않았어요.")
-    if not _verify_reauth(user, req.model_dump()):
-        raise AppError(501, "reauth_not_implemented",
-                       "삭제 전 재인증 방식이 확정되지 않았어요.")
-    sb = get_supabase()
-    now = datetime.now(timezone.utc)
-    purge_after = (now + timedelta(days=_DELETION_RETENTION_DAYS)).isoformat()
-    try:
-        sb.table("deletion_requests").upsert({
-            "user_id": user.id,
-            "requested_at": now.isoformat(),
-            "purge_after": purge_after,
-            "status": "pending",
-            "updated_at": now.isoformat(),
-        }, on_conflict="user_id").execute()
-    except Exception as e:
-        logging.error(f"deletion request save failed: {e}")
-        raise AppError(503, "persistence_failed", "Failed to record deletion request")
-    return {"status": "pending", "purge_after": purge_after, "retention_days": _DELETION_RETENTION_DAYS}
-
-
-@app.get("/api/account/deletion-request")
-async def get_account_deletion(user_id: str = Depends(get_current_user_id)):
-    """본인 삭제 요청 상태 조회 (없으면 status=none)."""
+@app.delete("/api/account")
+def delete_account(req: DeleteAccountRequest, user_id: str = Depends(get_current_user_id)):
+    """Delete only the verified caller. FK cascades remove data in one transaction."""
     sb = get_supabase()
     try:
-        r = sb.table("deletion_requests").select("status, requested_at, purge_after").eq("user_id", user_id).execute()
-    except Exception as e:
-        logging.error(f"deletion request read failed: {e}")
-        raise AppError(503, "persistence_failed", "Failed to read deletion request")
-    if not r.data:
-        return {"status": "none"}
-    row = r.data[0]
-    return {"status": row["status"], "requested_at": row.get("requested_at"), "purge_after": row.get("purge_after")}
+        ready = sb.rpc("account_deletion_ready").execute()
+        if ready.data is not True:
+            raise AppError(503, "account_deletion_unavailable",
+                           "탈퇴 기능을 점검 중이에요. 잠시 후 다시 시도해 주세요.")
+        subscription = _read_subscription(sb, user_id)
+        if subscription and subscription.get("will_renew"):
+            raise AppError(409, "subscription_cancellation_required",
+                           "자동 갱신 중인 구독을 먼저 해지한 뒤 탈퇴해 주세요.")
+        # Do not delete public rows separately: an Auth failure must preserve them.
+        sb.auth.admin.delete_user(user_id, should_soft_delete=False)
+    except AppError:
+        raise
+    except Exception:
+        logging.exception("Account deletion failed")
+        raise AppError(503, "account_deletion_failed",
+                       "회원탈퇴를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.")
+    return {"status": "deleted"}
+
+
+@app.post("/api/account/deletion-request")
+def legacy_account_deletion(user_id: str = Depends(get_current_user_id)):
+    # Older clients display a retention promise and must never trigger hard deletion.
+    raise AppError(410, "account_deletion_flow_changed",
+                   "페이지를 새로고침한 뒤 회원탈퇴를 다시 진행해 주세요.")

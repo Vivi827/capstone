@@ -1,5 +1,4 @@
 import type {
-  AccountDeletionStatusResponse,
   BillingProduct,
   ConversationDetailResponse,
   ConversationListItem,
@@ -48,7 +47,6 @@ interface MockState {
   quota: UsageQuota;
   records: MockConversationRecord[];
   subscriptionEntitled: boolean;
-  accountDeletion: AccountDeletionStatusResponse;
 }
 
 interface IdempotencyEntry {
@@ -69,7 +67,6 @@ function createInitialState(): MockState {
       turns: MOCK_TURNS.filter((turn) => turn.conversation_id === conversation.id).map(clone),
     })),
     subscriptionEntitled: false,
-    accountDeletion: { status: "none" },
   };
 }
 
@@ -473,23 +470,17 @@ export const mockPallyApi: PallyApi = {
     return this.getSubscription();
   },
 
-  async getAccountDeletion() {
+  async deleteAccount(input) {
     await delay();
     ensureActiveAccount();
-    return clone(mockState.accountDeletion);
-  },
-
-  async requestAccountDeletion() {
-    await delay();
-    ensureActiveAccount();
-    const now = new Date();
-    mockState.accountDeletion = {
-      status: "pending",
-      requested_at: now.toISOString(),
-      purge_after: new Date(now.getTime() + 730 * 24 * 60 * 60 * 1000).toISOString(),
-      retention_days: 730,
-    };
-    return clone(mockState.accountDeletion);
+    if (input.confirmation !== "회원탈퇴") {
+      throw new PallyApiError(422, "validation_error", "회원탈퇴 확인 문구를 입력해 주세요.");
+    }
+    mockState = createInitialState();
+    mockState.accountDeleted = true;
+    mockState.records = [];
+    idempotencyCache.clear();
+    return { status: "deleted" };
   },
 
 };

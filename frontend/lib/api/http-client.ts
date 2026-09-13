@@ -2,7 +2,7 @@ import type { z } from "zod";
 
 import type {
   ActivityEventInput,
-  AccountDeletionRequestInput,
+  DeleteAccountInput,
   CheckoutInput,
   GetConversationInput,
   ListConversationsInput,
@@ -14,7 +14,7 @@ import type {
 import { PallyApiError } from "@/lib/api/contracts";
 import {
   achievementsResponseSchema,
-  accountDeletionStatusResponseSchema,
+  deleteAccountResponseSchema,
   billingProductsResponseSchema,
   checkoutResponseSchema,
   conversationDetailResponseSchema,
@@ -193,13 +193,10 @@ export const httpPallyApi: PallyApi = {
     idempotencyKey: createIdempotencyKey(),
   }),
 
-  getAccountDeletion: () => apiRequest("/api/account/deletion-request", { schema: accountDeletionStatusResponseSchema }),
-
-  requestAccountDeletion: (input: AccountDeletionRequestInput) => apiRequest("/api/account/deletion-request", {
-    schema: accountDeletionStatusResponseSchema,
-    method: "POST",
+  deleteAccount: (input: DeleteAccountInput) => apiRequest("/api/account", {
+    schema: deleteAccountResponseSchema,
+    method: "DELETE",
     contentType: "application/json",
-    idempotencyKey: createIdempotencyKey(),
     body: JSON.stringify(input),
   }),
 

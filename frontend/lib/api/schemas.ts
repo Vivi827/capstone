@@ -174,11 +174,8 @@ export const subscriptionResponseSchema = z.object({
   }),
 });
 
-export const accountDeletionStatusResponseSchema = z.object({
-  status: z.enum(["none", "pending"]),
-  requested_at: z.string().nullable().optional(),
-  purge_after: z.string().nullable().optional(),
-  retention_days: z.number().int().positive().optional(),
+export const deleteAccountResponseSchema = z.object({
+  status: z.literal("deleted"),
 });
 
 export const errorResponseSchema = z.object({
