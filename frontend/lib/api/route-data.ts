@@ -8,7 +8,7 @@ import type {
 } from "@/lib/api/contracts";
 import { PallyApiError } from "@/lib/api/contracts";
 import { pallyApi } from "@/lib/api";
-import { clearUser, invalidate, prefetch, read, write } from "@/lib/api/query-cache";
+import { clearUser, invalidate, peek, prefetch, read, write } from "@/lib/api/query-cache";
 import { supabase } from "@/lib/supabase/client";
 
 const USAGE_TTL_MS = 15_000;
@@ -62,6 +62,16 @@ export function loadHistoryPage(userId: string, cursor?: string): Promise<Conver
   ));
 }
 
+export function loadLatestCompletedConversation(userId: string): Promise<ConversationListResponse> {
+  const history = peek<ConversationListResponse>(userId, `${CACHE_KEYS.history}first`);
+  if (history) return Promise.resolve(history);
+
+  // Share history data on return visits; fetch only one summary on a cold home load.
+  return read(userId, `${CACHE_KEYS.history}latest`, ROUTE_DATA_TTL_MS, () => (
+    pallyApi.listConversations({ status: "completed", limit: 1 })
+  ));
+}
+
 export function loadConversationPage(
   userId: string,
   conversationId: string,
@@ -104,6 +114,7 @@ export async function prefetchRouteData(href: string, userId?: string): Promise<
   const scope = userId ?? await getCurrentUserId();
   if (href.startsWith("/home")) {
     await Promise.all([
+      loadLatestCompletedConversation(scope),
       prefetch(scope, CACHE_KEYS.usage, USAGE_TTL_MS, () => pallyApi.getUsage()),
       prefetch(scope, CACHE_KEYS.subscription, ROUTE_DATA_TTL_MS, () => pallyApi.getSubscription()),
     ]);

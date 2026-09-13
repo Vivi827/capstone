@@ -47,6 +47,7 @@ export function usePally(): UsePallyReturn {
 
   const restoreAxes = useCallback((nextAxes: Axes) => {
     setAxes(nextAxes);
+    pendingAxes.current = nextAxes;
   }, []);
 
   const getAccumulatedAxes = useCallback((): Axes => pendingAxes.current, []);
