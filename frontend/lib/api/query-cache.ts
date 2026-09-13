@@ -19,6 +19,11 @@ function enforceLimit(): void {
   }
 }
 
+export function peek<T>(userId: string, key: string): T | undefined {
+  const entry = entries.get(scopedKey(userId, key)) as CacheEntry<T> | undefined;
+  return entry && entry.expiresAt > Date.now() ? entry.value : undefined;
+}
+
 export async function read<T>(
   userId: string,
   key: string,

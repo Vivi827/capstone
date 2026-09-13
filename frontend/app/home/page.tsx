@@ -17,6 +17,8 @@ import { conversationTurnsToMessages } from "@/lib/api/conversation-messages";
 import {
   invalidateConversationData,
   invalidateUsage,
+  loadConversationPage,
+  loadLatestCompletedConversation,
   loadSubscription,
   loadUsage,
   schedulePrimaryRoutePrefetch,
@@ -73,9 +75,9 @@ export default function HomePage() {
       const conversationId = requestedId ?? storedId;
 
       const usagePromise = loadUsage(userId);
-      const completedPromise = pallyApi.listConversations({ status: "completed", limit: 1 });
+      const completedPromise = loadLatestCompletedConversation(userId);
       const detailPromise = conversationId
-        ? pallyApi.getConversation(conversationId, { limit: 50 })
+        ? loadConversationPage(userId, conversationId)
         : Promise.resolve(null);
 
       void loadSubscription(userId)
@@ -118,9 +120,6 @@ export default function HomePage() {
 
       const messages = conversationTurnsToMessages(conversationId, detail.turns);
       if (!active) return;
-      if (detail.conversation.current_axes) {
-        updateFromChatResponse({ axes: detail.conversation.current_axes });
-      }
       conversationIdRef.current = conversationId;
       window.localStorage.setItem(CONVERSATION_KEY, conversationId);
       dispatch({ type: "session/load", id: conversationId, messages });

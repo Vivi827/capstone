@@ -2,9 +2,9 @@
 > 이 파일은 Claude Code(AI 코딩 도구)용 프로젝트 컨텍스트 파일입니다. 일반 방문자는 무시하세요.
 
 > 사람 팀원 + AI 에이전트(Claude Code / Codex / Cursor) 공용 가이드.
-> **Source of truth: `.planning/ROADMAP.md`** — 충돌 시 ROADMAP 우선.
+> 현재 작업은 사용자의 최신 요청과 실제 코드·배포 상태를 기준으로 한다. `.planning/`의 과거 계획은 참고 자료이며 현재 작업 절차를 강제하지 않는다.
 > **AGENTS.md는 이 파일의 symlink.** Codex도 동일 규칙.
-> **초기 셋업(도구·MCP·gcloud·env)은 `docs/shared/SETUP.md` 참조.** 처음 1회만.
+> **공유 프로젝트 식별자는 §2, Railway·Vercel·Supabase 연결 방법은 §8 참조.**
 
 ## Codex bootstrap
 
@@ -15,40 +15,26 @@
 
 ---
 
-## 0. 매 세션 시작 — 무조건 이 4가지
+## 0. 작업 시작
 
-```bash
-git pull origin main                         # 1. 최신 받기 (diverge 방지)
-```
-```
-/gsd-progress                                # 2. 현재 phase + next action 확인
-```
-```bash
-git checkout gsd/phase-<N>-<slug>            # 3. 본인 phase branch로
-```
-
-4. 환경변수가 바뀌었는지 팀 채널/Notion 확인.
-
-**세션 분리:** Plan / Build / Ship 각각 새 세션. 컨텍스트 80% 넘으면 강제 분리. 한 세션에 다 몰면 컨텍스트 폭발.
+1. 이 파일과 작업에 관련된 기존 코드·문서를 읽는다.
+2. `git status --short --branch`로 현재 브랜치와 미커밋 변경을 확인한다. 다른 사람의 변경을 덮어쓰지 않는다.
+3. 필요한 경우 원격 변경을 확인하고 현재 작업과 충돌하지 않게 동기화한다. 세션 시작만을 이유로 `main`을 현재 브랜치에 합치거나 브랜치를 바꾸지 않는다.
+4. 외부 서비스 작업이면 현재 세션의 도구·로그인·프로젝트 접근을 §8에 따라 확인한다. 과거 연결 성공 기록만으로 현재 권한을 가정하지 않는다.
 
 ---
 
-## 1. 팀 & Phase Ownership
+## 1. 팀 & 작업 영역
 
-| 사람 | 역할 | Phase | 주력 디렉토리 |
-|------|------|-------|--------------|
-| 최윤서 | PM · 기획 · QA | 전체 검수 | `.planning/`, `docs/` |
-| 이찬희 | FE · 디자인 | **Phase 0** + **Phase 1A** | `frontend/` (Pally 영역 제외) |
-| 김민주 | AI · 데이터 | **Phase 1B** | `ai/`, `frontend/components/pally/`, `frontend/app/dev/pally/`, `frontend/lib/types/character.ts` |
-| 백은혜 | BE · AI | **Phase 1C** | `backend/`, Supabase 마이그레이션 |
-| 전원 | Integration | **Phase 2** | 전체 |
+| 사람 | 역할 | 주력 디렉토리 |
+|------|------|--------------|
+| 최윤서 | PM · 기획 · QA | `docs/`, 전체 검수 |
+| 이찬희 | FE · 디자인 | `frontend/` (Pally 영역 제외) |
+| 김민주 | AI · 데이터 | `ai/`, `frontend/components/pally/`, `frontend/app/dev/pally/`, `frontend/lib/types/character.ts` |
+| 백은혜 | BE · AI | `backend/`, Supabase 마이그레이션 |
+| 전원 | Integration | 전체 |
 
-**의존 관계:**
-- Phase 0 완료 전 1A/1B/1C **불가**
-- 1C는 1B 전체 머지가 아니라 **D+1 Python engine ADR**만 기다림
-- Phase 2는 1A+1B+1C 머지 후 시작
-
-**충돌 회피 (중요):** 1A와 1B 둘 다 `frontend/`를 만진다.
+**충돌 회피 (중요):** 프론트엔드 작업 영역이 겹칠 수 있다.
 - 이찬희 = 메인 화면, audio shell, 네비게이션
 - 김민주 = Pally renderer, character types, dev 페이지
 - 다른 영역 만져야 하면 → 팀 채널 공지 + 짧은 PR
@@ -57,63 +43,31 @@ git checkout gsd/phase-<N>-<slug>            # 3. 본인 phase branch로
 
 ## 2. 공유 리소스 ID
 
-MCP가 본인 계정의 모든 리소스를 보여주므로, AI가 매 명령마다 **어떤 project**를 다룰지 알아야 한다. 아래 식별자를 그대로 사용한다.
+CLI와 MCP의 접근 범위는 로그인한 계정·토큰의 권한에 따라 달라진다. 아래 식별자로 **대상 프로젝트**를 확인한다. 식별자가 문서에 있다는 사실은 접근 권한을 뜻하지 않는다.
 
 | 리소스 | 식별자 |
 |--------|-------|
 | Supabase project | `jxmdtrydtjlzglqwcofs` |
 | GitHub repo | `puter8/capstone` |
 | GCP project | `capstone-puter8` |
-| Vercel workspace / project | `hunheay123s-projects` / `yourpally` → `https://capstone-eight-virid.vercel.app` |
+| Vercel workspace / project | 기존 기록: `hunheay123s-projects` / `yourpally` → `https://capstone-eight-virid.vercel.app` (**현재 팀 접근 재확인 필요**, §8) |
+| Railway workspace | `김민주's Projects` (`6d007f5d-ab0a-4c91-871f-357fe3681d8d`) |
+| Railway project | `powerful-laughter` (`f9d8024f-96aa-4f83-b052-ed7c7fc1da4a`) |
+| Railway environment / service | `production` / `web` |
 | Railway deployment | `https://web-production-8dee5.up.railway.app` |
 
 다른 본인 개인 계정 리소스와 혼동하지 않도록 위 ID로 명시. 새 리소스 추가 시 이 표를 먼저 업데이트하고 팀 채널 공지.
 
 ---
 
-## 3. Workflow
+## 3. 작업 흐름
 
-### Session 1 · Plan
+1. 요청 범위와 기존 구현을 확인한다. 비즈니스 로직이 모호하면 질문한다.
+2. 기존 패턴을 따라 필요한 변경을 구현한다. 외부 API를 연동하는 코드는 §4의 실호출 확인을 먼저 한다.
+3. 변경에 맞는 검증을 수행한다. 실제 서비스 흐름 검증은 §5를 따른다.
+4. 변경 내용·검증 결과·남은 문제를 보고한다. 사용자 요청 없이 커밋·PR·머지·배포로 작업 범위를 확장하지 않는다.
 
-```
-/gsd-discuss-phase <N>         # 필수. 컨텍스트 질문 → CONTEXT.md
-/gsd-plan-phase <N>            # 필수. PLAN.md (research 내장)
-```
-
-PLAN.md 확정 → **세션 종료** (컨텍스트 비움).
-
-### Session 2 · Build (새 세션)
-
-```
-/gsd-execute-phase <N>         # 필수. PLAN.md 따라 atomic commit
-                               # 외부 API 쓰면 §4 절차 먼저
-/gsd-verify-work               # 필수. UAT (§5)
-/gsd-code-review               # REVIEW.md
-/gsd-code-review-fix           # auto-fix + commit
-/gsd-secure-phase              # auth/RLS 만진 경우만
-```
-
-Build 완료 → **세션 종료**.
-
-### Session 3 · Ship (새 세션)
-
-```
-/gsd-ship                      # 필수. PR 생성
-```
-
-CI 통과 → main 머지 → Vercel/Railway 자동 배포 → Vercel MCP `list_deployments`로 READY 확인 (§8).
-
-### 막힐 때
-
-| 상황 | 명령 |
-|------|------|
-| 버그 진단 | `/investigate` 또는 `/gsd-debug` |
-| 다른 AI 의견 | `/codex consult` / `/codex challenge` |
-| 이전 세션 복원 | `/gsd-resume-work` / `/context-restore` |
-| 일시 중단 | `/gsd-pause-work` |
-| 전체 명령 | `/gsd-help` |
-
-**원칙:** 스킬은 **명시적으로 요청할 때만**. 자동 체이닝(build → review → ship) 금지. AI는 단계별로 멈추고 보고.
+스킬은 사용자가 명시적으로 요청한 경우에 사용한다. 특정 명령 실행이나 Plan / Build / Ship 세션 분리를 필수 절차로 두지 않는다.
 
 ---
 
@@ -127,13 +81,13 @@ CI 통과 → main 머지 → Vercel/Railway 자동 배포 → Vercel MCP `list_
 4. API key 없으면 deferred 금지 → 즉시 요청
 5. 이 단계 건너뛰고 빌드 시작 **금지**
 
-**Phase 1C 특히:** Google Cloud STT/TTS/Gemini 2.5 Flash 각각 실제 호출 → latency, 응답 shape, 한국어 STT 인식률, TTS 자연도, structured output 안정성 확인 **후** 코드.
+**음성·AI 연동:** Google Cloud STT/TTS/Gemini 2.5 Flash 각각 실제 호출 → latency, 응답 shape, 한국어 STT 인식률, TTS 자연도, structured output 안정성 확인 **후** 코드.
 
 ---
 
 ## 5. E2E 검증
 
-Phase 빌드 중에는 "3 actions마다 checkpoint"보다 이 규칙이 우선.
+사용자 흐름을 변경한 작업에는 아래 기준을 적용한다.
 
 - 외부 API → 응답 → DB 저장 → UI 표시 **전체 흐름** 확인
 - 실제 GCP 호출 + 실제 Supabase row (mock 아님)
@@ -191,42 +145,97 @@ Phase 빌드 중에는 "3 actions마다 checkpoint"보다 이 규칙이 우선.
 
 - `git add .` **금지** (재강조)
 - 커밋: imperative mood, 72자 이내, **왜(why)** 설명
-- Branch: `gsd/phase-<N>-<slug>` (예: `gsd/phase-1a-fe-audio-shell`)
+- Branch: 현재 작업 브랜치를 우선 사용한다. 새 브랜치가 필요하면 작업 목적이 드러나는 이름을 사용한다.
 - `--no-verify` / `--force` 금지 (명시 허락 시만)
 - Production = `main`. feature → main PR 머지로만
 
 ---
 
-## 8. Deployment — `main`에 push하면 끝
+## 8. Railway · Vercel · Supabase 연결과 배포
 
-| Surface | Platform | Root | Owner |
-|---------|----------|------|-------|
+### 팀 공통 연결 원칙
+
+- 팀원은 각자 계정으로 같은 Railway workspace/project, Vercel team/project, Supabase organization/project에 초대받고 초대를 수락한다. 유료 플랜 결제와 팀원 접근 권한·도구 인증은 별개다.
+- CLI는 터미널 명령 도구, MCP는 AI 앱이 서비스 기능을 호출하는 연결 방식이다. 실제 권한은 연결된 계정·토큰에서 온다. CLI 로그인과 MCP 인증은 각각 확인한다.
+- **기본 경로:** Railway는 실제 조회가 검증된 CLI, Vercel·Supabase는 현재 세션에서 호출 가능한 공식 MCP를 우선한다. MCP가 없으면 설치·인증된 CLI 또는 승인된 API 접근을 확인한다.
+- 저장소 `.mcp.json`에는 Supabase·Vercel HTTP 서버가 등록돼 있다. Codex의 `~/.codex/config.toml` 등 AI 앱별 설정과 인증 상태도 별도로 확인한다. 저장소를 받았다는 사실만으로 모든 앱에 연결이 완료되지는 않는다.
+- 연결 완료는 **설정 등록 → 현재 세션에 도구 로드 → 인증된 대상 프로젝트 조회 성공**까지 확인한 상태다. 설정에만 있으면 시작·인증 오류를 확인하고, 필요하면 앱/IDE를 재시작해 새 세션에서 다시 확인한다.
+- 로그인·OAuth 승인은 팀원 각자의 환경에서 수행한다. 토큰·비밀번호·서버 키를 문서, 채팅, 커밋으로 공유하지 않는다. 환경변수는 필요한 이름과 설정 여부만 확인하고 전체 값을 출력하지 않는다.
+
+### Railway — CLI
+
+대상은 §2의 `powerful-laughter` / `production` / `web`이다. 처음 연결하거나 로그인이 만료되었을 때 `railway login`으로 본인 계정을 인증한다. `railway whoami`와 `railway list`로 계정과 프로젝트를 확인한다. [공식 CLI 안내](https://docs.railway.com/cli)
+
+프로젝트를 로컬 폴더에 연결하지 않고도 아래처럼 대상을 명시해 조회할 수 있다.
+
+```bash
+railway logs --project f9d8024f-96aa-4f83-b052-ed7c7fc1da4a \
+  --environment production --service web --lines 100
+```
+
+같은 폴더에서 반복해서 작업하려면 한 번 연결한다.
+
+```bash
+railway link --project f9d8024f-96aa-4f83-b052-ed7c7fc1da4a \
+  --environment production --service web
+railway status
+railway logs --lines 100
+railway logs --build --lines 100
+railway logs --http --lines 100
+```
+
+- `No linked project found`는 로컬 폴더 연결이 없다는 뜻이다. 로그인 실패와 구분하고, 명시적 프로젝트 조회 또는 `railway link`를 사용한다.
+- `railway status`는 연결된 프로젝트 정보 확인용이다. 앱 건강 상태는 배포 상태·런타임 로그·실제 요청으로 확인한다.
+- 런타임·빌드·HTTP 로그 접근과 앱이 내부 상세 로그를 남기는지는 별개다. 코드가 출력하지 않은 단계별 정보는 Railway에서 조회할 수 없다.
+
+### Vercel — MCP 우선, CLI 보조
+
+- 공식 MCP 주소는 `https://mcp.vercel.com`이다. 사용하는 AI 앱에서 서버를 등록하고 각자 Vercel 계정으로 OAuth 인증한다. Claude Code는 `/mcp`에서 인증할 수 있다. [공식 MCP 안내](https://vercel.com/docs/agent-resources/vercel-mcp)
+- MCP가 로드되면 우리 팀·프로젝트를 조회하고 배포 상태/로그 도구를 사용한다. 도구 이름은 현재 세션에 노출된 목록을 기준으로 한다.
+- CLI를 사용할 때는 최초 `vercel login` 후 아래 읽기 명령으로 확인한다. `--scope`는 `vercel teams list`에서 확인한 실제 팀 slug를 사용한다. 아래 값은 기존 문서의 팀을 재확인하는 예시다.
+
+```bash
+vercel whoami
+vercel teams list
+vercel projects inspect yourpally --scope hunheay123s-projects
+```
+
+- `The specified scope does not exist`가 나오면 로그인 계정, 팀 초대 수락, 현재 팀 slug를 확인한다. 프로젝트를 새로 만들거나 다른 개인 프로젝트로 대체하지 않는다.
+- `vercel deploy --prod` 수동 **금지**. Production은 Git 연동을 통해 배포한다. 환경변수 변경은 승인된 작업 범위에서 CLI 또는 dashboard로 수행한다.
+
+### Supabase — 팀원별 MCP 인증
+
+- 각자 Supabase 계정으로 MCP OAuth 인증을 하고, 프로젝트 `jxmdtrydtjlzglqwcofs`가 속한 organization의 접근을 승인한다. 일반적인 브라우저 인증에는 PAT를 직접 만들 필요가 없다. [공식 MCP 안내](https://supabase.com/docs/guides/ai-tools/mcp)
+- 프로젝트 조회용 연결 URL: `https://mcp.supabase.com/mcp?project_ref=jxmdtrydtjlzglqwcofs&read_only=true`. 조회 작업에는 이 범위를 권장한다. 현재 저장소 설정은 기본 URL만 등록돼 있으므로 프로젝트 고정·읽기 전용 설정이 이미 적용됐다고 가정하지 않는다.
+- 인증 후 현재 세션에서 테이블 목록 같은 최소 읽기 요청으로 접근을 검증한다. 데이터·스키마 변경은 별도로 승인된 범위와 연결 권한을 확인한다.
+- MCP OAuth는 개발 도구 인증이다. 앱의 `SUPABASE_SERVICE_ROLE_KEY`, 프론트의 anon key와 구분한다. 서버 키를 MCP 로그인용으로 재사용하지 않는다.
+- API 접근을 확인할 때는 URL이 우리 프로젝트인지 먼저 확인하고, 사용자 레코드를 반환하지 않는 최소 요청을 사용한다. 401/403을 연결 성공으로 처리하지 않는다.
+
+### 최근 연결 확인 — 2026-09-13
+
+아래는 이 저장소를 작업한 **개발 환경 한 곳**에서 확인한 결과다. 모든 팀원·운영 서버의 상태를 뜻하지 않는다. 다음 작업에서는 필요한 연결을 다시 확인한다.
+
+| 서비스 | 실제 확인 결과 | 남은 확인 |
+|--------|----------------|-----------|
+| Railway | 프로젝트를 명시한 CLI 조회 성공. 런타임 77개, 빌드 20개, HTTP 20개 조회. HTTP host도 §2의 배포 URL과 일치 | 해당 폴더의 로컬 프로젝트 연결은 당시 없었음. 팀원별 로그인·접근은 별도 확인 |
+| Vercel | MCP 등록은 확인했으나 현재 세션에 호출 도구 없음. CLI 로그인 성공, 기존 team scope 조회는 `The specified scope does not exist` | 현재 팀 slug·팀 초대·프로젝트 접근 및 MCP 인증/로드 확인 |
+| Supabase | MCP 등록은 확인했으나 현재 세션에 호출 도구 없음. 프론트의 프로젝트 URL과 로컬 백엔드 서버 키를 사용한 데이터 없는 읽기 요청은 HTTP 401 | MCP 인증/로드 및 로컬 서버 키 유효성 확인. 운영 서버 연결 상태는 이 결과로 판단하지 않음 |
+
+### 배포 및 확인
+
+| Surface | Platform | 코드 위치 | Owner |
+|---------|----------|-----------|-------|
 | Frontend | **Vercel** (Git 자동 배포) | `frontend/` | 이찬희 |
 | Backend | **Railway** (Git 자동 배포) | `backend/` | 백은혜 |
 
-### Vercel
+- Production 변경은 feature → `main` PR 머지로 진행한다. 머지 후 실제 배포 결과를 확인한다.
+- Railway에는 루트 `Procfile`과 `backend/Procfile`이 있고 시작 모듈이 다르다. 서비스의 실제 Root Directory/Start Command와 루트 `ai/` import 가능 여부를 확인한다.
+- Railway URL이 바뀌면 `frontend/.env.local`의 `NEXT_PUBLIC_BACKEND_URL`과 Vercel 환경변수를 승인된 범위에서 동기화한다.
 
-- `vercel deploy --prod` 수동 **금지** (Git 연동과 충돌)
-- 환경변수 변경만 Vercel CLI 또는 dashboard
-- 배포 상태/로그: **Vercel MCP** `list_deployments`, `get_deployment_build_logs`, `get_runtime_logs`
-
-### Railway
-
-- 공식 MCP 없음 → **`railway` CLI**:
-  ```bash
-  railway logs --tail              # 런타임 로그
-  railway variables                # env 확인
-  railway status                   # 배포 상태
-  ```
-- 필요 파일: `backend/Procfile` (`web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT`), `backend/runtime.txt` (`python-3.11.0`)
-- 배포 후 Railway URL → `frontend/.env.local`의 `NEXT_PUBLIC_BACKEND_URL` 업데이트 + Vercel dashboard도 동기화
-
-### 배포 후 체크
-
-1. Vercel READY 확인 (MCP)
-2. Railway healthy 확인 (`railway status`)
-3. 모바일 브라우저에서 배포 URL 열어 rec → Pally 응답 흐름 1회
-4. 실패 시 **로그 먼저 확인**. 추측 금지
+1. Vercel MCP 또는 인증된 CLI에서 대상 배포의 READY 상태를 확인한다.
+2. Railway 배포 상태·런타임 로그·실제 응답을 확인한다.
+3. 모바일 브라우저에서 배포 URL을 열어 rec → Pally 응답 → DB 저장 흐름을 확인한다.
+4. 실패 시 **로그 먼저 확인**. 추측 금지.
 
 ---
 
@@ -234,17 +243,15 @@ Phase 빌드 중에는 "3 actions마다 checkpoint"보다 이 규칙이 우선.
 
 | 종류 | 경로 |
 |------|------|
-| 프로젝트 진행 (gsd 자동 관리) | `.planning/PROJECT.md`, `REQUIREMENTS.md`, `ROADMAP.md`, `STATE.md` |
-| Phase 작업 | `.planning/phases/<N>/PLAN.md`, `REVIEW.md`, `UI-SPEC.md` |
 | ADR (아키텍처 결정) | `docs/adr/0001-*.md` (`TEMPLATE.md` 참조) |
 | Plan 리뷰 / office-hours | `docs/plan/{YYYY-MM-DD}-{feature}-*.md` |
 | Design system | `DESIGN.md` (루트) + `docs/design/` |
 | Code 컨벤션 | `docs/code-convention.md` |
 | 팀 그라운드룰 · 셋업 가이드 | `docs/shared/` |
 
-**Source of truth: `.planning/ROADMAP.md`** — 충돌 시 ROADMAP 우선. `docs/_archive/`는 참조용.
+`.planning/`와 `docs/_archive/`는 과거 계획·진행 기록을 확인할 때만 참고한다. 현재 코드·사용자 요청과 다르면 과거 작업 순서나 완료 상태를 그대로 적용하지 않는다.
 
-ADR은 **세션당 최대 3개**. 나머지는 PLAN.md에 "Minor Decision:" 인라인.
+ADR은 **세션당 최대 3개**. 나머지는 해당 작업 설명에 "Minor Decision:" 인라인.
 
 ---
 
@@ -269,13 +276,14 @@ ADR은 **세션당 최대 3개**. 나머지는 PLAN.md에 "Minor Decision:" 인�
 
 ### ALWAYS
 
-- 세션 시작 시 `git pull` + `/gsd-progress`
+- 작업 시작 시 현재 브랜치·미커밋 변경 확인 (§0)
 - 기존 코드 패턴 매칭 (재발명 금지)
 - 외부 API 코드 전 실호출 (§4)
 - E2E는 실제 모바일 + 실제 데이터 (§5)
 - auth / 결제 / 데이터 삭제는 사용자 확인 후
 - 3회 실패 시 stop & reassess
-- gsd 작업 중 짧게 보고 (silent 금지)
+- 작업 중 진행 상황을 짧게 보고 (silent 금지)
+- 외부 서비스는 대상 프로젝트의 실제 조회 성공까지 확인 (§8)
 - 디렉토리 경계 지키기 (§1)
 
 ---
@@ -288,4 +296,4 @@ ADR은 **세션당 최대 3개**. 나머지는 PLAN.md에 "Minor Decision:" 인�
 
 ---
 
-*Last updated: 2026-05-21 · synchronized to `.planning/ROADMAP.md` (June 7 demo)*
+*Last updated: 2026-09-13 · 작업 지침 정리 및 Railway·Vercel·Supabase 연결 안내 반영*

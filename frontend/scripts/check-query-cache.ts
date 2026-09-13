@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 
-import { clearUser, invalidate, read, write } from "../lib/api/query-cache";
+import { clearUser, invalidate, peek, read, write } from "../lib/api/query-cache";
 
 async function main(): Promise<void> {
+  write("peek-user", "history:first", 60_000, { items: [] });
+  assert.deepEqual(peek("peek-user", "history:first"), { items: [] }, "empty history is valid cached data");
+  assert.equal(peek("other-user", "history:first"), undefined, "peek must stay scoped to the current user");
+  write("peek-user", "history:latest", 0, "expired");
+  assert.equal(peek("peek-user", "history:latest"), undefined, "peek must not serve expired values");
+  invalidate("peek-user", "history:");
+  assert.equal(peek("peek-user", "history:first"), undefined, "conversation changes must invalidate peeked history");
+  clearUser("peek-user");
+
   let calls = 0;
   let resolveLoader: (value: string) => void = () => {
     throw new Error("loader resolver was not created");
