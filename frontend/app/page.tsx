@@ -15,7 +15,14 @@ export default function LoginPage() {
     setIsLoading(provider);
     setError(null);
     const redirectTo = `${window.location.origin}/auth/callback`;
-    const { error: signInError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        // Override Kakao's default email scope; this app only has profile permissions.
+        ...(provider === "kakao" ? { queryParams: { scope: "profile_nickname profile_image" } } : {}),
+      },
+    });
     if (signInError) {
       setError(signInError.message);
       setIsLoading(null);
