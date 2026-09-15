@@ -26,7 +26,7 @@ jobs:
       - name: Byte-compile (syntax check)
         run: python -m compileall -q backend ai
 
-      - name: Smoke test (app import + core routes)
+      - name: Backend smoke and speech regression tests
         env:
           PYTHONPATH: backend
-        run: pytest -q backend/test_smoke.py
+        run: pytest -q backend/test_smoke.py backend/test_tts.py tests/test_generate_feedback.py tests/test_ai_reply_shaping.py

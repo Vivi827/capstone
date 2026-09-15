@@ -12,6 +12,7 @@ import hashlib
 import time
 import uuid
 from collections import deque
+from contextlib import asynccontextmanager
 from datetime import datetime, time as dtime, timedelta, timezone
 
 import httpx
@@ -75,7 +76,23 @@ def _analyze_axes(text: str) -> Dict[str, int]:
 GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY", "")    # Gemini (AI Studio)
 GOOGLE_CLOUD_API_KEY = os.getenv("GOOGLE_CLOUD_API_KEY", "")  # STT / TTS (Cloud Console)
 
-app = FastAPI(title="Pally Backend API", version="1.0.0")
+DEFAULT_TTS_VOICE = os.getenv("PALLY_TTS_VOICE", "").strip() or "en-US-Chirp3-HD-Leda"
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    # Pool connections across turns, but never across event loops or app restarts.
+    async with httpx.AsyncClient(
+        timeout=15.0, limits=httpx.Limits(keepalive_expiry=60.0),
+    ) as client:
+        application.state.tts_client = client
+        try:
+            yield
+        finally:
+            application.state.tts_client = None
+
+
+app = FastAPI(title="Pally Backend API", version="1.0.0", lifespan=lifespan)
 
 # CORS 허용 origin: 기본 "*"(개발). 프로덕션은 CORS_ALLOW_ORIGINS 에 프론트 도메인을
 # 콤마로 넣어 제한한다. 예: CORS_ALLOW_ORIGINS=https://capstone-eight-virid.vercel.app
@@ -319,7 +336,7 @@ class FeedbackResponse(BaseModel):
 
 class TTSRequest(BaseModel):
     text: str
-    voice: Optional[str] = "en-US-Journey-F"
+    voice: Optional[str] = None
     speaking_rate: Optional[float] = 1.0
 
 
@@ -551,13 +568,13 @@ def _strip_emoji(text: str) -> str:
 
 async def _call_google_tts(
     text: str,
-    voice: str = "en-US-Journey-F",
+    voice: Optional[str] = None,
     speaking_rate: float = 1.0,
 ) -> str:
     """Google Cloud TTS 호출 → base64 MP3 반환"""
     payload = {
         "input": {"text": text},
-        "voice": {"languageCode": "en-US", "name": voice},
+        "voice": {"languageCode": "en-US", "name": voice or DEFAULT_TTS_VOICE},
         "audioConfig": {
             "audioEncoding": "MP3",
             "speakingRate": speaking_rate,
@@ -566,11 +583,13 @@ async def _call_google_tts(
         },
     }
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.post(
-            f"https://texttospeech.googleapis.com/v1/text:synthesize?key={GOOGLE_CLOUD_API_KEY}",
-            json=payload,
-        )
+    client = app.state.tts_client
+    if client is None:
+        raise RuntimeError("TTS client is not running")
+    resp = await client.post(
+        f"https://texttospeech.googleapis.com/v1/text:synthesize?key={GOOGLE_CLOUD_API_KEY}",
+        json=payload,
+    )
 
     if resp.status_code != 200:
         raise HTTPException(status_code=502, detail=_format_google_tts_error(resp))
@@ -629,12 +648,13 @@ async def tts(req: TTSRequest):
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="text is required")
 
+    voice = req.voice or DEFAULT_TTS_VOICE
     audio_b64 = await _call_google_tts(
         _strip_emoji(req.text),
-        req.voice or "en-US-Journey-F",
+        voice,
         req.speaking_rate or 1.0,
     )
-    return {"audio_b64": audio_b64, "voice": req.voice, "encoding": "MP3"}
+    return {"audio_b64": audio_b64, "voice": voice, "encoding": "MP3"}
 
 
 # ── Feedback — 5축 분석 + Gemini 피드백 + TTS ────────────────────────────────
