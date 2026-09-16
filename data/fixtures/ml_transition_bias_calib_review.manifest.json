@@ -1,0 +1,626 @@
+{
+  "annotation_batch": "bias_calib",
+  "dataset_partition": "train",
+  "axes": "all",
+  "scored_axes": [
+    "Formality",
+    "Energy",
+    "Intimacy",
+    "Humor",
+    "Curiosity"
+  ],
+  "seed": 20260910,
+  "slots": [
+    "A",
+    "B"
+  ],
+  "item_count": 60,
+  "items": [
+    {
+      "item_id": "bias_calib-0001",
+      "candidate_index": 0,
+      "utterance": "do we want to just have a device that maybe sits and pretends it's a fruit?",
+      "utterance_sha1": "20df533709add3777ed0b57baf8439130599344e",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0002",
+      "candidate_index": 1,
+      "utterance": "Oh Michael, hi.",
+      "utterance_sha1": "abd80ef28ff0edaad06b81fd03b16c2618bb3ea9",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0003",
+      "candidate_index": 2,
+      "utterance": "And it's just to, it's just to playback something?",
+      "utterance_sha1": "298b62de002402a0c91b8f2a4e660ad207592198",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0004",
+      "candidate_index": 3,
+      "utterance": "because then they have to keep m their mobiles outside in solar energy",
+      "utterance_sha1": "1421d62d4529ab455334f973bf5b5555897037f5",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0005",
+      "candidate_index": 4,
+      "utterance": "I know personally that would be a very attractive feature, is to have a uh have a button I can push to find my remote control.",
+      "utterance_sha1": "ba31b572fb1a28578344d5403144f43963fc57f3",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0006",
+      "candidate_index": 5,
+      "utterance": "Okay and please please copy all the mails, okay, all the discussions to me, okay",
+      "utterance_sha1": "385a111db244fb78d4ba3c11bd14132acc611d33",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0007",
+      "candidate_index": 6,
+      "utterance": "We just diske discuss it as you designed it",
+      "utterance_sha1": "c895a31837e9fae0c9d30a401212733ba57da568",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0008",
+      "candidate_index": 7,
+      "utterance": "Means let's say this this can move the the larger digits and this can move the smaller digits.",
+      "utterance_sha1": "ccf28cbc41ec1fe07603f06b9f57712685f1f76a",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0009",
+      "candidate_index": 8,
+      "utterance": "And all curves have already been done.",
+      "utterance_sha1": "d0933df53f0093fb4dd460d07443d4ab5a060c96",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0010",
+      "candidate_index": 9,
+      "utterance": "Yeah, but I'll zap.",
+      "utterance_sha1": "5bad8397c59b6d7a893d673abc0c63eb20db9b58",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0011",
+      "candidate_index": 10,
+      "utterance": "would we even technically be possible to include video recorder functions on it?",
+      "utterance_sha1": "46751f952304cb3314dc4612c568e2342249054a",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0012",
+      "candidate_index": 11,
+      "utterance": "Just to participant one.",
+      "utterance_sha1": "c05ecb72703a701378473cd0340169e81e5a9c9e",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0013",
+      "candidate_index": 12,
+      "utterance": "All of the components have been used in other things before.",
+      "utterance_sha1": "716b613c69e0c6388261eda36ef2a13ed1079543",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0014",
+      "candidate_index": 13,
+      "utterance": "We may have to do some more research into other strain injuries that we don't know about.",
+      "utterance_sha1": "3ad3f2f47f1a8cc9e15f22eb941ef2ca6335e0a6",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0015",
+      "candidate_index": 14,
+      "utterance": "And and this is all tying in very nicely.",
+      "utterance_sha1": "2b734fab9e98053ee0611cbafd7c589c370c25e7",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0016",
+      "candidate_index": 15,
+      "utterance": "And by the way, Mister David Jordan, please record your presentations in your own folder. Not in mine.",
+      "utterance_sha1": "6fbe36dc8f6fa4664a354d6dc267cfc9ce29ce93",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0017",
+      "candidate_index": 16,
+      "utterance": "Yeah, that that's a better question actually.",
+      "utterance_sha1": "bd06c338328c6d90225e006670e52ece9fe16400",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0018",
+      "candidate_index": 17,
+      "utterance": "so this might be a little limiting for your creativity",
+      "utterance_sha1": "9fffa422e959b17512340c7969d6915a7323ac8a",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0019",
+      "candidate_index": 18,
+      "utterance": "I think that's nice, yeah.",
+      "utterance_sha1": "560db86ccf1fbbafe7eb6c2967a7eb981841a834",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0020",
+      "candidate_index": 19,
+      "utterance": "how it looks, or like what it does?",
+      "utterance_sha1": "f3650e77eb56a2c134d4c587548443d1a14729ef",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0021",
+      "candidate_index": 20,
+      "utterance": "So I want to lunch I want to eat lunch with me with you",
+      "utterance_sha1": "4a41c1a8a1e0fd3d617f1d8e119594d96f2c5c21",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0022",
+      "candidate_index": 21,
+      "utterance": "They were were eating too much",
+      "utterance_sha1": "4b75fbc0c8404239032011ab573824b35a700ac7",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0023",
+      "candidate_index": 22,
+      "utterance": "Um this is so emergency er condition, so I have to go back, you know",
+      "utterance_sha1": "4800e380fbcc2f0b8893bb34c74302009378f4f0",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0024",
+      "candidate_index": 23,
+      "utterance": "And I c ur a few people are having ur ur coffee inside ja the log house",
+      "utterance_sha1": "75543890c2e074661a9d848cb945a843a4037527",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0025",
+      "candidate_index": 24,
+      "utterance": "if you have a express train, um I I want to take that",
+      "utterance_sha1": "0a4d492c63a77962a92f287c32c8e84bdc0ac7c7",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0026",
+      "candidate_index": 25,
+      "utterance": "Instead, I started picking up playing the blues harmonica",
+      "utterance_sha1": "f65c0b8c6863d5e9292f780c9a281b8cf72d3ae1",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0027",
+      "candidate_index": 26,
+      "utterance": "Are there other",
+      "utterance_sha1": "8d3fd27e38cdd1b88618e5854838aa6f2c23a36c",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0028",
+      "candidate_index": 27,
+      "utterance": "I'll come back later When when what time",
+      "utterance_sha1": "1887d62ad2b6c49155f9ef3ffe0d55c6ab35ba42",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0029",
+      "candidate_index": 28,
+      "utterance": "Can I can I er could you please give me the ticket",
+      "utterance_sha1": "b0bc1599d92531bb7371057bb83c7626e87faabd",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0030",
+      "candidate_index": 29,
+      "utterance": "watch the movie with big big music",
+      "utterance_sha1": "22856622c6095ce5690e24d673b6002c1019b200",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0031",
+      "candidate_index": 30,
+      "utterance": "Oh mhm how much the ticket",
+      "utterance_sha1": "71689f343a004ac60717a2bac4a54fadfbeaadf9",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0032",
+      "candidate_index": 31,
+      "utterance": "It's easy than speak American or British, I think",
+      "utterance_sha1": "ae1697c553759d136bae5b322b708b5b9cb683d1",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0033",
+      "candidate_index": 32,
+      "utterance": "Then I had school, met my friends, and I was waiting for this interview",
+      "utterance_sha1": "7c0e6bb3f04e36647f7a852ede8c955549a6f8d8",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0034",
+      "candidate_index": 33,
+      "utterance": "I lived in in England for about five years",
+      "utterance_sha1": "b84e916a6257672f77d1da22d717f4c44b151d69",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0035",
+      "candidate_index": 34,
+      "utterance": "someones are not so good at skiing, so I think he is er almost",
+      "utterance_sha1": "88af28183538f41929a8a7830112cc116cab2ecd",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0036",
+      "candidate_index": 35,
+      "utterance": "Just moment, please",
+      "utterance_sha1": "64721e4b2a13cf40235cf02b0d4d8cd231c4e063",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0037",
+      "candidate_index": 36,
+      "utterance": "There is eh no people in lift",
+      "utterance_sha1": "f8e23b52ee5d105018c2b4ff6879c58f7837d73e",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0038",
+      "candidate_index": 37,
+      "utterance": "Um the kitty er the kitty was so cute that uh she wanted him to ur she wanted to er she wanted to keep him keep her",
+      "utterance_sha1": "7caa9a173531b7567c7d5652b7e9b97d6e8c51f5",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0039",
+      "candidate_index": 38,
+      "utterance": "I'm going to New York and hurry",
+      "utterance_sha1": "a4110c7acde4fa60f1122ea53142a6b816ec91fc",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0040",
+      "candidate_index": 39,
+      "utterance": "And so, could you come to my my room and che check it and started start the repair my broken window today",
+      "utterance_sha1": "e4ad5443bf85ba7ccd92c05f799606340e6389e7",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0041",
+      "candidate_index": 40,
+      "utterance": "b e e f e r Beefer.",
+      "utterance_sha1": "9578c580edb1d85f3f0bf480fe83204d3f8e7627",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0042",
+      "candidate_index": 41,
+      "utterance": "7:30, I'll be fine.",
+      "utterance_sha1": "f9f47660a397ccc3507591a053b8a91b18a3df65",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0043",
+      "candidate_index": 42,
+      "utterance": "Okay, that's fine.",
+      "utterance_sha1": "322edcb3ba1774e24e2c64aaf3293c241b20b767",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0044",
+      "candidate_index": 43,
+      "utterance": "Yeah. I will have a venti caramel macchiato with soy milk, please.",
+      "utterance_sha1": "5e0ccf1134e981c3064458953b25bc387bc7743b",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0045",
+      "candidate_index": 44,
+      "utterance": "No, thank you.",
+      "utterance_sha1": "08debdfc76057136e399a3cdcae07d905f833ba6",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0046",
+      "candidate_index": 45,
+      "utterance": "I'd like to order a coffee at the Starbucks in Springfield Plaza in Springfield.",
+      "utterance_sha1": "9dde1f4da2274b262ab5701e7a7394c771d598f0",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0047",
+      "candidate_index": 46,
+      "utterance": "I want a a tall cappuccino.",
+      "utterance_sha1": "e27c06e8b2b574f32416761fbcf8119bfa56b42b",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0048",
+      "candidate_index": 47,
+      "utterance": "I will go for Russ whipped cream and little sugar then I'm okay.",
+      "utterance_sha1": "9110c9c8e130426d76ee76e1341fe247c5be6cca",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0049",
+      "candidate_index": 48,
+      "utterance": "Next Friday, please.",
+      "utterance_sha1": "2ec8f5f0e857e61ad3a5c8457c22b2103141eff4",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0050",
+      "candidate_index": 49,
+      "utterance": "That sounds good.",
+      "utterance_sha1": "8db333406cc358c082243202faa9adea3f13a819",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0051",
+      "candidate_index": 50,
+      "utterance": "Okay. Yeah, that's good enough.",
+      "utterance_sha1": "7069d0b45629c4ac6e0d45a9bc0f829bcb61d65a",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0052",
+      "candidate_index": 51,
+      "utterance": "Italian, American, or Mexican.",
+      "utterance_sha1": "23a68c5da3d68a7f501215ab4e46851850f42b3e",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0053",
+      "candidate_index": 52,
+      "utterance": "carry c a r r y.",
+      "utterance_sha1": "ce7421b6101d012b469ea9f4b05522634a0d69f1",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0054",
+      "candidate_index": 53,
+      "utterance": "Oh, okay. So, let's make the reservations for 12 people, and around about 7:00ish for Friday, next Friday.",
+      "utterance_sha1": "6371d8a8d9a206f939fc89bc6591cdb8ce9fdb43",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0055",
+      "candidate_index": 54,
+      "utterance": "Yes, that's right. Yes, please.",
+      "utterance_sha1": "2820a2b63de64f5a2ceeb8d4e75e40a290deb982",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0056",
+      "candidate_index": 55,
+      "utterance": "Yeah, then can you tell me who directed the movie?",
+      "utterance_sha1": "eb453a85b8a24e9e02334553851284b38a0dd6ef",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0057",
+      "candidate_index": 56,
+      "utterance": "Okay. Okay. Thank you.",
+      "utterance_sha1": "b18d9a54d48007bcb2bc973fef44f3a1631b1187",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0058",
+      "candidate_index": 57,
+      "utterance": "I would just need their phone number?",
+      "utterance_sha1": "a278ecfcf98445d64efaad3bc543c15c152777bd",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0059",
+      "candidate_index": 58,
+      "utterance": "No. No, thank you.",
+      "utterance_sha1": "0b7a150f0b521f1e9a0fb77bfdf1eae20381bd53",
+      "previous_turn": "",
+      "next_turn": ""
+    },
+    {
+      "item_id": "bias_calib-0060",
+      "candidate_index": 59,
+      "utterance": "Now, ASAP, please.",
+      "utterance_sha1": "dcad16dce4b104e588224381b7cc8dbb45ecebda",
+      "previous_turn": "",
+      "next_turn": ""
+    }
+  ],
+  "slot_order": {
+    "A": [
+      "bias_calib-0015",
+      "bias_calib-0051",
+      "bias_calib-0007",
+      "bias_calib-0026",
+      "bias_calib-0027",
+      "bias_calib-0043",
+      "bias_calib-0053",
+      "bias_calib-0011",
+      "bias_calib-0028",
+      "bias_calib-0014",
+      "bias_calib-0021",
+      "bias_calib-0060",
+      "bias_calib-0017",
+      "bias_calib-0023",
+      "bias_calib-0037",
+      "bias_calib-0024",
+      "bias_calib-0005",
+      "bias_calib-0020",
+      "bias_calib-0036",
+      "bias_calib-0059",
+      "bias_calib-0002",
+      "bias_calib-0006",
+      "bias_calib-0033",
+      "bias_calib-0057",
+      "bias_calib-0031",
+      "bias_calib-0048",
+      "bias_calib-0042",
+      "bias_calib-0058",
+      "bias_calib-0050",
+      "bias_calib-0055",
+      "bias_calib-0039",
+      "bias_calib-0034",
+      "bias_calib-0035",
+      "bias_calib-0019",
+      "bias_calib-0032",
+      "bias_calib-0025",
+      "bias_calib-0049",
+      "bias_calib-0045",
+      "bias_calib-0047",
+      "bias_calib-0046",
+      "bias_calib-0041",
+      "bias_calib-0044",
+      "bias_calib-0052",
+      "bias_calib-0003",
+      "bias_calib-0013",
+      "bias_calib-0010",
+      "bias_calib-0009",
+      "bias_calib-0018",
+      "bias_calib-0040",
+      "bias_calib-0029",
+      "bias_calib-0012",
+      "bias_calib-0030",
+      "bias_calib-0038",
+      "bias_calib-0056",
+      "bias_calib-0008",
+      "bias_calib-0016",
+      "bias_calib-0022",
+      "bias_calib-0004",
+      "bias_calib-0054",
+      "bias_calib-0001"
+    ],
+    "B": [
+      "bias_calib-0039",
+      "bias_calib-0021",
+      "bias_calib-0054",
+      "bias_calib-0037",
+      "bias_calib-0057",
+      "bias_calib-0040",
+      "bias_calib-0048",
+      "bias_calib-0016",
+      "bias_calib-0031",
+      "bias_calib-0015",
+      "bias_calib-0030",
+      "bias_calib-0017",
+      "bias_calib-0027",
+      "bias_calib-0034",
+      "bias_calib-0026",
+      "bias_calib-0025",
+      "bias_calib-0013",
+      "bias_calib-0007",
+      "bias_calib-0055",
+      "bias_calib-0053",
+      "bias_calib-0009",
+      "bias_calib-0003",
+      "bias_calib-0002",
+      "bias_calib-0043",
+      "bias_calib-0036",
+      "bias_calib-0006",
+      "bias_calib-0004",
+      "bias_calib-0049",
+      "bias_calib-0024",
+      "bias_calib-0060",
+      "bias_calib-0019",
+      "bias_calib-0044",
+      "bias_calib-0008",
+      "bias_calib-0047",
+      "bias_calib-0029",
+      "bias_calib-0035",
+      "bias_calib-0028",
+      "bias_calib-0022",
+      "bias_calib-0005",
+      "bias_calib-0058",
+      "bias_calib-0012",
+      "bias_calib-0018",
+      "bias_calib-0052",
+      "bias_calib-0038",
+      "bias_calib-0045",
+      "bias_calib-0020",
+      "bias_calib-0051",
+      "bias_calib-0041",
+      "bias_calib-0059",
+      "bias_calib-0056",
+      "bias_calib-0032",
+      "bias_calib-0046",
+      "bias_calib-0011",
+      "bias_calib-0001",
+      "bias_calib-0010",
+      "bias_calib-0050",
+      "bias_calib-0042",
+      "bias_calib-0033",
+      "bias_calib-0014",
+      "bias_calib-0023"
+    ]
+  }
+}

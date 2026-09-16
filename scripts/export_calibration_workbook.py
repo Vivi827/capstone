@@ -164,18 +164,27 @@ def _style_header(ws, row: int, ncols: int) -> None:
         cell.border = BOX
 
 
-def sheet_intro(wb: Workbook, slot: str, item_count: int, seed: int) -> None:
+def sheet_intro(
+    wb: Workbook,
+    slot: str,
+    item_count: int,
+    seed: int,
+    title: str = "Pally 5축 Calibration 채점 안내",
+    purpose_lines: tuple[str, ...] = (
+        "두 검수자가 같은 기준으로 점수를 주는지 확인하는 단계입니다. 본격적인 대규모 라벨링 전에",
+        "기준 차이(한 사람이 계속 높게/낮게 주는지, 축 정의를 다르게 이해하는지)를 찾습니다.",
+        "이 데이터는 dev 용도이며 학습이나 최종 성능 판정에 쓰지 않습니다.",
+    ),
+) -> None:
     ws = wb.create_sheet("안내")
     ws.column_dimensions["A"].width = 100
     lines = [
-        ("Pally 5축 Calibration 채점 안내", TITLE_FONT),
+        (title, TITLE_FONT),
         ("", None),
         (f"검수자 슬롯: {slot}   /   문항 수: {item_count}   /   순서 seed: {seed}", SUB_FONT),
         ("", None),
         ("[ 목적 ]", SUB_FONT),
-        ("두 검수자가 같은 기준으로 점수를 주는지 확인하는 단계입니다. 본격적인 대규모 라벨링 전에", None),
-        ("기준 차이(한 사람이 계속 높게/낮게 주는지, 축 정의를 다르게 이해하는지)를 찾습니다.", None),
-        ("이 데이터는 dev 용도이며 학습이나 최종 성능 판정에 쓰지 않습니다.", None),
+        *[(line, None) for line in purpose_lines],
         ("", None),
         ("[ 채점 방법 ]", SUB_FONT),
         ("1. '채점 기준표' 시트와 '채점 예시' 시트를 먼저 읽습니다.", None),
@@ -286,10 +295,20 @@ def sheet_scoring(wb: Workbook, slot: str, items: list[dict[str, Any]]) -> None:
     ws.freeze_panes = ws.cell(row=header_row + 1, column=3)
 
 
-def build_workbook(slot: str, items: list[dict[str, Any]], seed: int, out_path: Path) -> None:
+def build_workbook(
+    slot: str,
+    items: list[dict[str, Any]],
+    seed: int,
+    out_path: Path,
+    title: str = "Pally 5축 Calibration 채점 안내",
+    purpose_lines: tuple[str, ...] | None = None,
+) -> None:
     wb = Workbook()
     wb.remove(wb.active)
-    sheet_intro(wb, slot, len(items), seed)
+    kwargs = {"title": title}
+    if purpose_lines is not None:
+        kwargs["purpose_lines"] = purpose_lines
+    sheet_intro(wb, slot, len(items), seed, **kwargs)
     sheet_rubric(wb)
     sheet_examples(wb)
     sheet_scoring(wb, slot, items)
@@ -302,6 +321,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--candidates", type=Path, default=DEFAULT_CANDIDATES)
     parser.add_argument("--outdir", type=Path, default=DEFAULT_OUTDIR)
+    parser.add_argument("--out-prefix", default="calibration_scoring", help="output filename stem before .slot{X}.xlsx")
+    parser.add_argument("--title", default="Pally 5축 Calibration 채점 안내")
     return parser
 
 
@@ -324,8 +345,8 @@ def main() -> None:
                     "utterance": manifest_item["utterance"],
                 }
             )
-        out_path = args.outdir / f"calibration_scoring_slot{slot}.xlsx"
-        build_workbook(slot, items, manifest["seed"], out_path)
+        out_path = args.outdir / f"{args.out_prefix}_slot{slot}.xlsx"
+        build_workbook(slot, items, manifest["seed"], out_path, title=args.title)
         written.append(out_path)
 
     for path in written:

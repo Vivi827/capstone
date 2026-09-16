@@ -1,0 +1,61 @@
+annotation_batch,dataset_partition,item_id,reviewer_slot,utterance,reviewed_Formality,reviewed_Energy,reviewed_Intimacy,reviewed_Humor,reviewed_Curiosity,reviewer_id,review_status,reviewer_notes
+bias_calib,train,bias_calib-0039,B,I'm going to New York and hurry,30,60,30,0,0,reviewer-B,completed,이동 계획과 hurry의 급함을 직접 전달. 약간의 긴박감(에너지 보통~중상)이 반영됨.
+bias_calib,train,bias_calib-0021,B,So I want to lunch I want to eat lunch with me with you,30,40,55,0,10,reviewer-B,completed,함께 점심 먹자는 개인적 제안(친밀도 높음). 반말/구어체 톤.
+bias_calib,train,bias_calib-0054,B,"Oh, okay. So, let's make the reservations for 12 people, and around about 7:00ish for Friday, next Friday.",40,40,20,0,15,reviewer-B,completed,let's 및 7:00ish 표현을 사용한 편안한 예약 논의. 평범한 구어체 톤.
+bias_calib,train,bias_calib-0037,B,There is eh no people in lift,35,25,5,0,0,reviewer-B,completed,승강기 내부 상황에 대한 차분하고 단조로운 객관적 묘사.
+bias_calib,train,bias_calib-0057,B,Okay. Okay. Thank you.,50,35,25,0,0,reviewer-B,completed,Thank you를 포함한 정중한 감사 표현. 큰 감정 고조 없는 차분한 반응.
+bias_calib,train,bias_calib-0040,B,"And so, could you come to my my room and che check it and started start the repair my broken window today",65,40,25,0,20,reviewer-B,completed,could you를 사용한 정중한 점검/수리 요청 (격식 높음).
+bias_calib,train,bias_calib-0048,B,I will go for Russ whipped cream and little sugar then I'm okay.,35,30,20,0,5,reviewer-B,completed,음료 토핑/당도 취향을 전달하는 편안한 주문 발화.
+bias_calib,train,bias_calib-0016,B,"And by the way, Mister David Jordan, please record your presentations in your own folder. Not in mine.",60,50,25,10,5,reviewer-B,completed,"Mister/please 사용으로 격식을 갖추었으나, Not in mine으로 단호함 전달."
+bias_calib,train,bias_calib-0031,B,Oh mhm how much the ticket,30,35,10,0,75,reviewer-B,completed,how much를 통해 티켓 가격을 명확하게 묻는 질문 (호기심 높음).
+bias_calib,train,bias_calib-0015,B,And and this is all tying in very nicely.,40,50,25,0,0,reviewer-B,completed,very nicely라는 긍정적 평가 표현으로 중간 정도의 에너지와 서술형 진술.
+bias_calib,train,bias_calib-0030,B,watch the movie with big big music,30,40,10,0,0,reviewer-B,completed,big big 수식어로 소리의 크기를 표현한 구어체 설명.
+bias_calib,train,bias_calib-0017,B,"Yeah, that that's a better question actually.",35,40,25,0,5,reviewer-B,completed,상대방의 질문을 긍정적으로 평가하는 가벼운 대화체 반응.
+bias_calib,train,bias_calib-0027,B,Are there other,40,25,10,0,45,reviewer-B,completed,추가 존재 여부를 묻기 시작한 미완성 질문 (호기심 의도 존재).
+bias_calib,train,bias_calib-0034,B,I lived in in England for about five years,40,30,45,0,0,reviewer-B,completed,과거 거주 기간에 관한 차분한 개인 경험 공유.
+bias_calib,train,bias_calib-0026,B,"Instead, I started picking up playing the blues harmonica",40,40,45,0,0,reviewer-B,completed,새로운 취미(블루스 하모니카) 시작에 대한 개인적 자기공개.
+bias_calib,train,bias_calib-0025,B,"if you have a express train, um I I want to take that",45,30,15,0,30,reviewer-B,completed,급행열차 이용 의사를 밝히며 약하게 확인하는 조심스러운 표현.
+bias_calib,train,bias_calib-0013,B,All of the components have been used in other things before.,50,30,10,0,0,reviewer-B,completed,부품 재사용 이력에 대한 건조하고 차분한 정보 전달.
+bias_calib,train,bias_calib-0007,B,We just diske discuss it as you designed it,35,30,15,0,0,reviewer-B,completed,설계대로 논의하자는 평범한 업무용 발화.
+bias_calib,train,bias_calib-0055,B,"Yes, that's right. Yes, please.",55,35,20,0,10,reviewer-B,completed,please 및 동의 표현을 포함한 정중한 확인 및 동의.
+bias_calib,train,bias_calib-0053,B,carry c a r r y.,40,20,5,0,0,reviewer-B,completed,단어와 철자를 명확히 전달하는 매우 차분한 서술.
+bias_calib,train,bias_calib-0009,B,And all curves have already been done.,45,25,10,0,0,reviewer-B,completed,작업 완료 상태를 차분하게 알리는 중립적 진술.
+bias_calib,train,bias_calib-0003,B,"And it's just to, it's just to playback something?",35,30,15,0,60,reviewer-B,completed,재생 용도인지 여부를 재확인하는 명확한 질문.
+bias_calib,train,bias_calib-0002,B,"Oh Michael, hi.",30,50,60,0,0,reviewer-B,completed,이름(Michael)을 직접 부르는 친근하고 반가운 인사 (친밀도 높음).
+bias_calib,train,bias_calib-0043,B,"Okay, that's fine.",40,30,15,0,0,reviewer-B,completed,무난하고 차분한 수락 및 수긍 진술.
+bias_calib,train,bias_calib-0036,B,"Just moment, please",60,25,15,0,10,reviewer-B,completed,please를 포함하여 정중하게 잠시 대기를 요청하는 구어체.
+bias_calib,train,bias_calib-0006,B,"Okay and please please copy all the mails, okay, all the discussions to me, okay",50,55,20,0,15,reviewer-B,completed,please 및 okay 반복을 통한 강조 요청 발화.
+bias_calib,train,bias_calib-0004,B,because then they have to keep m their mobiles outside in solar energy,40,30,10,0,0,reviewer-B,completed,이유를 설명하는 서술형 구어체 발화.
+bias_calib,train,bias_calib-0049,B,"Next Friday, please.",55,25,10,0,10,reviewer-B,completed,please를 붙여 날짜 선택을 요청하는 차분한 표현.
+bias_calib,train,bias_calib-0024,B,And I c ur a few people are having ur ur coffee inside ja the log house,30,25,10,0,0,reviewer-B,completed,통나무집 안 상황을 단순 관찰·묘사하는 발화.
+bias_calib,train,bias_calib-0060,B,"Now, ASAP, please.",50,75,15,0,10,reviewer-B,completed,"ASAP, Now를 사용한 강한 긴급 요구 (에너지 높음)."
+bias_calib,train,bias_calib-0019,B,"I think that's nice, yeah.",35,40,30,0,0,reviewer-B,completed,I think과 yeah를 사용한 가벼운 긍정적 의견 제시.
+bias_calib,train,bias_calib-0044,B,"Yeah. I will have a venti caramel macchiato with soy milk, please.",60,30,15,0,10,reviewer-B,completed,please를 포함한 정중하고 명확한 음료 주문.
+bias_calib,train,bias_calib-0008,B,Means let's say this this can move the the larger digits and this can move the smaller digits.,40,35,15,0,0,reviewer-B,completed,기능과 동작 방식에 대해 예시를 들어 설명하는 발화.
+bias_calib,train,bias_calib-0047,B,I want a a tall cappuccino.,40,30,10,0,10,reviewer-B,completed,카푸치노 주문 의사를 직접적으로 밝히는 일상 발화.
+bias_calib,train,bias_calib-0029,B,Can I can I er could you please give me the ticket,70,30,20,0,20,reviewer-B,completed,could you please 표현을 사용한 매우 정중한 티켓 수령 요청.
+bias_calib,train,bias_calib-0035,B,"someones are not so good at skiing, so I think he is er almost",35,30,20,0,0,reviewer-B,completed,스키 실력에 대한 조심스러운 개인적 평의 미완성 발화.
+bias_calib,train,bias_calib-0028,B,I'll come back later When when what time,30,35,15,0,75,reviewer-B,completed,what time을 이용하여 귀환 시각을 명확히 질문 (호기심 높음).
+bias_calib,train,bias_calib-0022,B,They were were eating too much,35,35,10,0,0,reviewer-B,completed,상대방들의 과식 행동에 대한 단순 서술/묘사.
+bias_calib,train,bias_calib-0005,B,"I know personally that would be a very attractive feature, is to have a uh have a button I can push to find my remote control.",45,45,40,0,10,reviewer-B,completed,개인적 선호(personally)와 리모컨 찾기 기능 제안.
+bias_calib,train,bias_calib-0058,B,I would just need their phone number?,60,30,15,0,70,reviewer-B,completed,would를 사용해 완곡하게 상대방 연락처를 묻는 질문.
+bias_calib,train,bias_calib-0012,B,Just to participant one.,40,20,5,0,0,reviewer-B,completed,전달 대상을 지정하는 짧고 차분한 단편 문장.
+bias_calib,train,bias_calib-0018,B,so this might be a little limiting for your creativity,50,35,30,0,0,reviewer-B,completed,might와 a little을 사용하여 상대의 창의성 제한 우려를 완화하여 전달.
+bias_calib,train,bias_calib-0052,B,"Italian, American, or Mexican.",40,25,5,0,0,reviewer-B,completed,선택 가능한 옵션 목록들을 나열하는 건조한 발화.
+bias_calib,train,bias_calib-0038,B,Um the kitty er the kitty was so cute that uh she wanted him to ur she wanted to er she wanted to keep him keep her,30,50,30,0,0,reviewer-B,completed,so cute 강조 및 고양이에 대한 이야기를 전달하는 발화.
+bias_calib,train,bias_calib-0045,B,"No, thank you.",55,25,20,0,0,reviewer-B,completed,thank you를 포함한 정중한 거절 표현.
+bias_calib,train,bias_calib-0020,B,"how it looks, or like what it does?",30,35,15,0,75,reviewer-B,completed,외관과 기능 중 어느 쪽인지를 다지선다로 명확히 묻는 질문.
+bias_calib,train,bias_calib-0051,B,"Okay. Yeah, that's good enough.",35,30,20,0,0,reviewer-B,completed,일상적인 수락 및 만족 상태 전달.
+bias_calib,train,bias_calib-0041,B,b e e f e r Beefer.,40,20,5,0,0,reviewer-B,completed,단어의 알파벳 철자와 단어명을 전달하는 발화.
+bias_calib,train,bias_calib-0059,B,"No. No, thank you.",50,30,20,0,0,reviewer-B,completed,No 반복으로 거절을 강조하지만 thank you로 예의를 갖춘 발화.
+bias_calib,train,bias_calib-0056,B,"Yeah, then can you tell me who directed the movie?",55,35,15,0,80,reviewer-B,completed,can you tell me who...로 영화 감독 정보를 직접 요청하는 질문.
+bias_calib,train,bias_calib-0032,B,"It's easy than speak American or British, I think",40,40,30,0,5,reviewer-B,completed,언어 비교에 대한 I think 완화 표현의 개인적 견해.
+bias_calib,train,bias_calib-0046,B,I'd like to order a coffee at the Starbucks in Springfield Plaza in Springfield.,65,30,15,0,10,reviewer-B,completed,I'd like to를 사용하여 정중하게 주문 목적을 밝히는 구어체.
+bias_calib,train,bias_calib-0011,B,would we even technically be possible to include video recorder functions on it?,60,40,20,0,80,reviewer-B,completed,would를 사용해 구체적 기능 구현 가능성을 묻는 질의.
+bias_calib,train,bias_calib-0001,B,do we want to just have a device that maybe sits and pretends it's a fruit?,35,45,25,60,65,reviewer-B,completed,과일인 척하는 기기라는 유머러스/부조리한 설정(유머 높음)과 질문 형식.
+bias_calib,train,bias_calib-0010,B,"Yeah, but I'll zap.",25,45,20,15,0,reviewer-B,completed,zap이라는 가벼운 생동감 있는 구어 표현이 포함된 반말조 진술.
+bias_calib,train,bias_calib-0050,B,That sounds good.,40,40,25,0,0,reviewer-B,completed,상대 제안에 대한 협조적이고 가벼운 동의/수락.
+bias_calib,train,bias_calib-0042,B,"7:30, I'll be fine.",40,25,20,0,0,reviewer-B,completed,시간에 조율하여 본인의 가능 여부를 알리는 차분한 대답.
+bias_calib,train,bias_calib-0033,B,"Then I had school, met my friends, and I was waiting for this interview",40,35,45,0,0,reviewer-B,completed,일과 및 친구/인터뷰 대기 일상에 관한 자기공개 서술.
+bias_calib,train,bias_calib-0014,B,We may have to do some more research into other strain injuries that we don't know about.,55,40,20,0,65,reviewer-B,completed,may로 완곡하게 조사 필요성을 조율하며 모르는 영역에 대한 탐색 의지 표명.
+bias_calib,train,bias_calib-0023,B,"Um this is so emergency er condition, so I have to go back, you know",35,65,35,0,0,reviewer-B,completed,so emergency와 have to go back으로 긴급 상황 전달 (에너지 높음).

@@ -7,18 +7,23 @@
 `docs/ai-collab/archive/2026-09-08-roadmap-review/DECISION.md`,
 `docs/ai-collab/DECISION.md` (실행 계획, 2026-09-10, Codex Round 2 검토 완료).
 
-> **STATUS 2026-09-10** — Phase 0 산출물 검증 완료 · 재실행 안전성 보완 완료 /
-> Phase 1 진행 중.
-> - 예약 스크립트 fail-safe 완료: provenance 복구 <100% 또는 `--expect-*-sha256`
->   불일치 시 **파일 쓰기 전에 중단**. 정상 입력에서 기존 176행 / 156그룹 분할
->   byte-identical 재생성 확인.
-> - `evaluate_axis_analyzers.py`: 필수 축 NA면 `best_by_spearman` 판정 보류
->   (verdict withheld). MAE · 공통 유효 축 보조 비교는 유지.
-> - partial-label ML 지원 완료: `_validate_partial_axes`, `label_source`,
->   `TfidfKnnAxisRegressor.predict_partial()`, `fit(require_full_axes=True)` 배포 어댑터.
-> - bucket 민감도: `scripts/bucket_sensitivity_gold200.py` 추가. §11 참조.
+> **STATUS 2026-09-11 (cycle 4 반영)** — 진단 우선. 사람 라벨링 대량 미확정.
+> `docs/ai-collab/DECISION.md`(cycle 4)가 현재 실행 계획.
+> - **calibration 보류**: 4×90 파일(커밋 `fce9cea`)은 팀 배포 안 함. Days 3-5에
+>   30문항×2명(평가 담당)으로 재설계. 샘플러 버그·확률 문구·AI-앵커 예시 수정 후.
+> - **U1(목표: 사람 gold gate 유지 vs 교사 재현으로 변경)은 진단 결과 후 결정.**
+>   그때까지 gate 유지가 기본.
+> - **dev-200은 절반 누출** (200행 중 100행이 학습 canonical 그룹과 겹침, 검증됨).
+>   `evaluate_axis_analyzers.py --mode gold-holdout`은 그룹 제외 미강제 — 앞으로
+>   모든 비교는 `scripts/diagnose_dev200_group_purge.py`처럼 dev-그룹 제거한
+>   공통 학습셋으로. 단, 집계 영향은 작음 (<0.07 MAE).
+> - 진행: `scripts/diagnose_dev200_group_purge.py` (Day 1). 다음: 교사 충실도
+>   (학습셋 내부 group-held-out), 표현(k·ngram) ablation, Flash-Lite 교사 1회 비교.
 > - **미고정(최종 평가 전 필수)**: §9 CI level / bootstrap 반복 수 / seed,
->   고정 hybrid 버전. §7 검수량은 실제 후보 수 확정 후 재계산 (아래 provisional).
+>   고정 hybrid 버전. §7 검수량은 30×2 재설계 후 확정.
+>
+> _이전 STATUS (Phase 0/1 빌드 완료): 예약 fail-safe, best_by_spearman NA 보류,
+> partial-label ML, bucket sensitivity — 모두 커밋됨 (80ca683..c4a0e4a)._
 
 ---
 

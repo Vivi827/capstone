@@ -48,7 +48,7 @@ def test_default_voice_reuses_connection_pool_and_closes_on_shutdown(monkeypatch
         assert all(r["voice"]["name"] == "en-US-Chirp3-HD-Leda" for r in requests)
         assert all(r["audioConfig"]["audioEncoding"] == "MP3" for r in requests)
     assert clients[0].is_closed
-    assert main.app.state.tts_client is None
+    assert main.app.state.http_client is None
 
 
 def test_journey_configuration_rollback_and_explicit_override(monkeypatch):

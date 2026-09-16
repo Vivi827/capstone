@@ -7,7 +7,7 @@ Two schemas:
   columns, matched back positionally by ``build_human_reviewed_axis_dataset``.
   Kept for the already-collected gold-200 / train-120 sets.
 
-* batch   -- ``--annotation-batch calibration|pilot|first40`` emits one blind
+* batch   -- ``--annotation-batch calibration|pilot|first40|bias_calib`` emits one blind
   CSV *per reviewer slot* plus a non-blind manifest. Columns follow
   docs/ml-transition-contract.md section 5:
   ``annotation_batch, dataset_partition, item_id, reviewer_slot`` +
@@ -42,6 +42,7 @@ BATCH_PARTITION_HINT = {
     "calibration": "train",
     "pilot": "train",
     "first40": "train",
+    "bias_calib": "train",
 }
 
 
@@ -209,7 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
     # legacy
     parser.add_argument("--review-set", choices=("gold", "train"), default=None)
     # batch
-    parser.add_argument("--annotation-batch", choices=("calibration", "pilot", "first40"), default=None)
+    parser.add_argument("--annotation-batch", choices=("calibration", "pilot", "first40", "bias_calib"), default=None)
     parser.add_argument("--dataset-partition", choices=("train", "dev", "test"), default=None)
     parser.add_argument("--reviewers", type=int, default=2, help="reviewer slot count for the batch schema")
     parser.add_argument("--seed", type=int, default=20260910, help="per-slot shuffle seed, recorded in the manifest")

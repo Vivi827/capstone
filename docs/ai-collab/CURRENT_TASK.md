@@ -1,41 +1,54 @@
-# Current Task — 실행 계획 (Execution Planning)
+# CURRENT TASK — cycle 4d: close remaining B0-B4 open items
 
-> 이전 두 사이클은 아카이브됨:
-> - `archive/2026-09-07-gold200-diagnosis/` — gold-200 teacher-label 진단
-> - `archive/2026-09-08-roadmap-review/` — ML 전환 9단계 로드맵의 Codex 방법론 검토
->
-> **이번 사이클의 근거 문서**: `archive/2026-09-08-roadmap-review/DECISION.md`
-> (ACTION 6개 + EVIDENCE NEEDED 6개 + AGREED/DISAGREED). 그 전략 결정을 바꾸는 게
-> 아니라, **구체적 실행 단계로 옮기는 것**이 이번 목표.
+## Goal
 
-## 목표(Goal)
+Close out (or explicitly scope) the items cycle 4c left open, and sanity
+check the two things Claude did since: the vocabulary-matched ridge-vs-kNN
+ablation, and the post-fix bootstrap. Recommend how to handle B3b's
+Formality bias without new dev-200 leakage.
 
-`archive/2026-09-08-roadmap-review/DECISION.md`의 ACTION/EVIDENCE NEEDED를 실행 가능한
-단계로 구체화한다:
-- 사람 라벨링이 필요한 CSV 파일 3종의 정확한 사양(소스, 선정 방법, 축, 2인 채점 포맷)
-- 내가 병행할 코드 작업 3종(partial-label 학습 지원, bucket-sensitivity 분석, `_pearson` NA 처리)의 정확한 구현 범위
-- clean-candidate 격리(최우선)의 실행 방법
+## Round 2 지시 (Codex)
 
-## 진행 방식 (3단계, 무한 루프 금지)
+Read `docs/ai-collab/CONTEXT.md`. Using real repo code/data:
 
-1. **Claude Code (실행 계획 초안, done)** -> `CLAUDE_REVIEW.md`
-2. **Codex (실행 가능성/누락 검토)** -> `CODEX_REVIEW.md`
-3. **Claude Code (합의/불일치 정리 + 최종 실행 계획)** -> `DECISION.md`
+1. **Verify the vocabulary-matched ablation.** Claude reports: fitting
+   `RidgeAxisRegressor(word_ngram_max=2, min_df=1, max_features=999999)` on
+   the same 2,940-row purged training set gives a 17,913-feature vocabulary
+   (matching kNN exactly) and dev-200 rho **0.4202**, versus kNN's **0.3624**
+   and the capped-vocab (4,000-feature) ridge's **0.4279**. Reproduce this.
+   Does matching vocabulary really isolate the estimator-family effect, or
+   is there a remaining confound (e.g. TF-IDF weighting details, L2
+   normalization, feature ordering, tie-breaking)?
+2. **Verify the post-fix bootstrap** in `scripts/bootstrap_b0_b4_comparison.py`
+   (commit `6c322ce`). Is the resampling scheme (resample groups with
+   replacement within each source, same group count as observed, reuse
+   indices across arms) appropriate for this comparison? Any bias in it
+   (e.g. does it handle sources with few groups, like AMI's 39, reasonably)?
+   If you'd design the interval differently, say how and whether it would
+   likely widen or narrow the reported CIs.
+3. **Recommend how to handle B3b's Formality bias** (Flash-Lite trained
+   labels carry a ~+14 to +18 systematic Formality over-scoring that the
+   ridge student reproduces, MAE 15.4-15.6 vs hybrid's 9.6) without
+   introducing new dev-200 leakage. Options to evaluate, add your own if
+   better:
+   (a) leave it uncorrected, report as a known defect, decide later with
+       the reserved-176 pool;
+   (b) estimate a bias correction from a portion of the ALREADY-scored
+       Flash-Lite training pool against something independent of dev-200
+       (name a concrete independent anchor if one exists, or say none does);
+   (c) split dev-200 itself into a calibration slice and a reporting slice
+       (state the cost: dev-200 is already repeatedly analyzed, so this
+       adds another use, and shrinks the reporting slice);
+   (d) something else.
+4. **Given the post-fix bootstrap showing neither ridge candidate beats
+   hybrid with 95% confidence, is it premature to build a B3b deployment
+   adapter right now?** Recommend proceed / hold, and what evidence bar
+   should be cleared first if "hold."
+5. **Anything else** a skeptical reader would still flag in
+   `docs/ml-transition-diagnosis-log.md` sections 11-12 as currently
+   written, or in the committed scripts, before this goes into a report
+   shared with the team.
 
-1·2단계는 코드를 수정하지 않는다. 읽기 전용 집계만 허용.
-
-## Round 2 지시 (Codex용)
-
-`CONTEXT.md`, `CLAUDE_REVIEW.md`, `archive/2026-09-08-roadmap-review/DECISION.md`,
-`archive/2026-09-08-roadmap-review/CODEX_REVIEW.md`를 읽고, `CLAUDE_REVIEW.md`의
-실행 계획에서:
-
-- CSV 사양의 결함 (소스 선택이 최종 test pool을 오염시키는지, blind 처리 누락, 2인 채점 포맷이 개인 점수를 실제로 보존하는지)
-- 코드 작업 범위가 이전 DECISION.md의 결정과 어긋나는 부분
-- 실행 순서의 문제 (격리 전에 후보를 뽑아 오염시키는 등)
-- partial-label 구현 접근(축별 독립 vs 공유 feature+축별 이웃 필터)의 트레이드오프
-- bucket-sensitivity 재구성이 "원래 bucket 복원"으로 과대 표현되는지
-- 빠진 검증/계약 (평가 comparator 고정, source-group bootstrap, gate #4 그룹 예약)
-
-을 찾아 `CODEX_REVIEW.md`에 작성한다. 실제 repo 데이터로 검증 가능한 주장은 검증한다.
-아직 코드는 수정하지 않는다.
+Write to `docs/ai-collab/CODEX_REVIEW.md` ONLY. Do not modify any other
+file. Do not commit, push, or reset git state. Do not call any external
+API. Do not open the reserved final test pool.
