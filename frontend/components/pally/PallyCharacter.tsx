@@ -16,7 +16,7 @@ export function PallyCharacter({ className, priority = false }: PallyCharacterPr
         fill
         priority={priority}
         sizes="308px"
-        src="/pally/pally-character.png"
+        src="/pally/pally-character.svg"
       />
     </div>
   );

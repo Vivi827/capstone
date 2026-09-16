@@ -13,7 +13,7 @@ export function MessageRow({ speaker, transcript, state = 'default' }: MessageRo
   if (state === 'listening') {
     return (
       <div className="flex flex-col items-center w-full text-center">
-        <p className="font-sans text-[20px] font-semibold leading-7 text-accent">
+        <p className="font-sans text-[20px] font-bold leading-7 text-accent">
           Listening...
         </p>
       </div>
@@ -23,7 +23,7 @@ export function MessageRow({ speaker, transcript, state = 'default' }: MessageRo
   return (
     <div className="flex flex-col items-center gap-1 w-full text-center">
       <p
-        className={`font-sans text-[20px] font-semibold leading-7 ${isPally ? 'text-accent' : 'text-primary'}`}
+        className={`font-sans text-[20px] font-bold leading-7 ${isPally ? 'text-accent' : 'text-primary'}`}
       >
         {isPally ? 'Pally' : 'YOU'}
       </p>

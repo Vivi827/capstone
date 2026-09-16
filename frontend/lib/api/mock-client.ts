@@ -1,4 +1,5 @@
 import type {
+  BillingProduct,
   ConversationDetailResponse,
   ConversationListItem,
   ConversationListResponse,
@@ -12,7 +13,7 @@ import type {
   TurnInput,
   TurnResponse,
   UpdateProfileInput,
-  UsageResponse,
+  UsageQuota,
 } from "@/lib/api/contracts";
 import { PallyApiError } from "@/lib/api/contracts";
 import {
@@ -43,8 +44,9 @@ interface MockConversationRecord {
 interface MockState {
   accountDeleted: boolean;
   profile: ProfileResponse["profile"];
-  quota: UsageResponse["quota"];
+  quota: UsageQuota;
   records: MockConversationRecord[];
+  subscriptionEntitled: boolean;
 }
 
 interface IdempotencyEntry {
@@ -64,8 +66,30 @@ function createInitialState(): MockState {
       conversation: clone(conversation),
       turns: MOCK_TURNS.filter((turn) => turn.conversation_id === conversation.id).map(clone),
     })),
+    subscriptionEntitled: false,
   };
 }
+
+const MOCK_BILLING_PRODUCTS: BillingProduct[] = [
+  {
+    id: "pro_monthly",
+    name: "Monthly",
+    interval: "month",
+    amount_minor: 999,
+    currency: "USD",
+    display_price: "$9.99",
+    trial_days: 0,
+  },
+  {
+    id: "pro_yearly",
+    name: "Yearly",
+    interval: "year",
+    amount_minor: 9999,
+    currency: "USD",
+    display_price: "$99.99",
+    trial_days: 7,
+  },
+];
 
 function clone<T>(value: T): T {
   return typeof structuredClone === "function"
@@ -158,6 +182,12 @@ export const mockPallyApi: PallyApi = {
     return { profile: clone(mockState.profile) };
   },
 
+  async getProfileAvatar() {
+    await delay();
+    ensureActiveAccount();
+    return { avatar_url: mockState.profile.avatar_url };
+  },
+
   async onboard(input: OnboardingInput) {
     await delay();
     ensureActiveAccount();
@@ -219,6 +249,13 @@ export const mockPallyApi: PallyApi = {
     await delay();
     ensureActiveAccount();
     const operation = `create_turn:${conversationId}`;
+    const cached = idempotencyCache.get(input.idempotency_key);
+    if (cached) {
+      if (cached.operation !== operation) {
+        throw new PallyApiError(409, "idempotency_conflict", "같은 idempotency key를 다른 요청에 사용할 수 없어요.");
+      }
+      return { ...clone(cached.result as TurnResponse), replayed: true };
+    }
     return withIdempotency(input.idempotency_key, operation, () => {
       const record = getRecord(conversationId);
       if (record.conversation.status !== "active") {
@@ -241,7 +278,6 @@ export const mockPallyApi: PallyApi = {
       const totalTurns = mockState.records.reduce((sum, item) => sum + item.turns.length, 0);
       const script = MOCK_TURN_SCRIPTS[totalTurns % MOCK_TURN_SCRIPTS.length];
       const createdAt = new Date().toISOString();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       const turnId = createUuid();
       const turn: ConversationTurn = {
         id: turnId,
@@ -254,6 +290,7 @@ export const mockPallyApi: PallyApi = {
         axes: clone(script.axes),
         character: clone(script.character),
         feedback: clone(script.feedback),
+        feedback_pending: false,
         warnings: [],
         created_at: createdAt,
       };
@@ -276,15 +313,16 @@ export const mockPallyApi: PallyApi = {
         conversation_id: conversationId,
         turn_id: turnId,
         status: "completed",
+        replayed: false,
         user: { transcript: script.transcript },
         pally: {
           text: script.reply,
-          audio_url: MOCK_SILENT_AUDIO_URL,
-          audio_expires_at: expiresAt,
+          audio: MOCK_SILENT_AUDIO_URL.split(",", 2)[1],
         },
         axes: clone(script.axes),
         character: clone(script.character),
         feedback: clone(script.feedback),
+        feedback_pending: false,
         warnings: [],
         quota: clone(mockState.quota),
         created_at: createdAt,
@@ -304,6 +342,23 @@ export const mockPallyApi: PallyApi = {
         completed_at: new Date().toISOString(),
       };
     }
+    return { conversation: clone(record.conversation) };
+  },
+
+  async reopenConversation(conversationId: string) {
+    await delay();
+    ensureActiveAccount();
+    const record = getRecord(conversationId);
+    if (record.conversation.status === "active") {
+      throw new PallyApiError(409, "conversation_already_active", "이미 진행 중인 대화예요.");
+    }
+    record.conversation = {
+      ...record.conversation,
+      status: "active",
+      completed_at: null,
+      reopened_at: new Date().toISOString(),
+      reopen_count: (record.conversation.reopen_count ?? 0) + 1,
+    };
     return { conversation: clone(record.conversation) };
   },
 
@@ -342,24 +397,90 @@ export const mockPallyApi: PallyApi = {
   async getUsage() {
     await delay();
     ensureActiveAccount();
-    return { quota: clone(mockState.quota), plan: "free" };
+    return {
+      plan: "free" as const,
+      date: "2026-08-25",
+      timezone: "Asia/Seoul" as const,
+      used_turns: mockState.quota.daily_limit - mockState.quota.remaining_turns,
+      remaining_turns: mockState.quota.remaining_turns,
+      daily_limit: mockState.quota.daily_limit,
+      reset_at: mockState.quota.resets_at,
+    };
   },
 
-  async deleteConversations(idempotencyKey: string) {
+  async recordActivityEvent() {
     await delay();
     ensureActiveAccount();
-    withIdempotency(idempotencyKey, "delete_conversations", () => {
-      mockState.records = [];
-      return null;
-    });
   },
 
-  async deleteAccount(idempotencyKey: string) {
+  async getAchievements() {
     await delay();
-    withIdempotency(idempotencyKey, "delete_account", () => {
-      mockState.records = [];
-      mockState.accountDeleted = true;
-      return null;
-    });
+    ensureActiveAccount();
+    return {
+      date: "2026-08-25",
+      timezone: "Asia/Seoul" as const,
+      streak_count: 1,
+      daily_tasks: [
+        { id: "A1", title: "Pally에게 말 걸기", description: "오늘 한 번 대화해보세요", status: "completed" as const, completed_at: new Date().toISOString() },
+        { id: "A2", title: "대화 돌아보기", description: "대화 기록을 확인해보세요", status: "default" as const, completed_at: null },
+        { id: "A3", title: "피드백 확인하기", description: "오늘 받은 피드백을 확인해보세요", status: "default" as const, completed_at: null },
+      ],
+    };
   },
+
+  async getBillingProducts() {
+    await delay();
+    ensureActiveAccount();
+    return { products: clone(MOCK_BILLING_PRODUCTS) };
+  },
+
+  async createCheckout(input) {
+    await delay();
+    ensureActiveAccount();
+    if (!MOCK_BILLING_PRODUCTS.some((product) => product.id === input.product_id)) {
+      throw new PallyApiError(422, "invalid_product", "선택한 요금제를 찾을 수 없어요.");
+    }
+    return {
+      checkout: {
+        product_id: input.product_id,
+        checkout_url: `https://mock-checkout.local/session/${createUuid()}`,
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      },
+    };
+  },
+
+  async getSubscription() {
+    await delay();
+    ensureActiveAccount();
+    return {
+      subscription: {
+        plan: mockState.subscriptionEntitled ? "pro" as const : "free" as const,
+        status: mockState.subscriptionEntitled ? "active" : "none",
+        entitled: mockState.subscriptionEntitled,
+        product_id: mockState.subscriptionEntitled ? "pro_monthly" : null,
+        current_period_end: null,
+        will_renew: mockState.subscriptionEntitled,
+        entitlements: mockState.subscriptionEntitled ? ["unlimited_turns"] : [],
+        updated_at: null,
+      },
+    };
+  },
+
+  async refreshSubscription() {
+    return this.getSubscription();
+  },
+
+  async deleteAccount(input) {
+    await delay();
+    ensureActiveAccount();
+    if (input.confirmation !== "회원탈퇴") {
+      throw new PallyApiError(422, "validation_error", "회원탈퇴 확인 문구를 입력해 주세요.");
+    }
+    mockState = createInitialState();
+    mockState.accountDeleted = true;
+    mockState.records = [];
+    idempotencyCache.clear();
+    return { status: "deleted" };
+  },
+
 };

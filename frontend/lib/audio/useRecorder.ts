@@ -13,7 +13,7 @@ export interface RecorderHandlers {
   onStart: () => void;
   /**
    * blob: recorded audio from MediaRecorder.
-   * transcript: reserved for a pre-transcribed result; currently unused.
+   * transcript: browser-recognized preview shown while the backend processes the turn.
    */
   onStop: (blob: Blob | null, transcript?: string) => void;
   onPermissionDenied: () => void;
@@ -23,6 +23,7 @@ export interface RecorderHandlers {
 export interface RecorderControls {
   start: () => Promise<void>;
   stop: () => void;
+  cancel: () => void;
 }
 
 interface SpeechRecognitionAlternativeLike {
@@ -76,8 +77,11 @@ export function useRecorder(handlers: RecorderHandlers): RecorderControls {
   const streamRef = useRef<MediaStream | null>(null);
   const mimeRef = useRef<string | null>(null);
   const timerRef = useRef<number | null>(null);
+  const finalizeTimerRef = useRef<number | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const speechTranscriptRef = useRef('');
+  const discardRecordingRef = useRef(false);
+  const startingRef = useRef(false);
 
   const cleanupStream = useCallback(() => {
     const stream = streamRef.current;
@@ -126,11 +130,26 @@ export function useRecorder(handlers: RecorderHandlers): RecorderControls {
     recorder.stop();
   }, [cleanupStream]);
 
+  const cancel = useCallback((): void => {
+    if (finalizeTimerRef.current !== null) {
+      window.clearTimeout(finalizeTimerRef.current);
+      finalizeTimerRef.current = null;
+    }
+    discardRecordingRef.current = true;
+    speechTranscriptRef.current = '';
+    stop();
+  }, [stop]);
+
   const start = useCallback(async (): Promise<void> => {
+    if (startingRef.current || recorderRef.current?.state === 'recording') return;
+
+    startingRef.current = true;
+    discardRecordingRef.current = false;
     speechTranscriptRef.current = '';
 
     const mime = pickMimeType();
     if (!mime) {
+      startingRef.current = false;
       handlers.onError(ERR_NO_MIME);
       return;
     }
@@ -142,6 +161,7 @@ export function useRecorder(handlers: RecorderHandlers): RecorderControls {
         audio: { channelCount: { ideal: 1 } },
       });
     } catch (err) {
+      startingRef.current = false;
       const name = err instanceof DOMException ? err.name : '';
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
         handlers.onPermissionDenied();
@@ -182,7 +202,16 @@ export function useRecorder(handlers: RecorderHandlers): RecorderControls {
       }
     }
 
-    const recorder = new MediaRecorder(stream, { mimeType: mime });
+    let recorder: MediaRecorder;
+    try {
+      recorder = new MediaRecorder(stream, { mimeType: mime });
+    } catch (error) {
+      startingRef.current = false;
+      cleanupStream();
+      console.error('MediaRecorder initialization failed.', error);
+      handlers.onError(ERR_NO_MIME);
+      return;
+    }
     recorderRef.current = recorder;
 
     recorder.ondataavailable = (event: BlobEvent) => {
@@ -202,24 +231,42 @@ export function useRecorder(handlers: RecorderHandlers): RecorderControls {
       const captured = chunksRef.current;
       const finalMime = mimeRef.current ?? mime;
       const blob = captured.length > 0 ? new Blob(captured, { type: finalMime }) : null;
+      const shouldDiscard = discardRecordingRef.current;
 
       cleanupStream();
       recorderRef.current = null;
       chunksRef.current = [];
+      discardRecordingRef.current = false;
 
-      window.setTimeout(() => {
+      if (shouldDiscard) {
+        speechTranscriptRef.current = '';
+        return;
+      }
+
+      finalizeTimerRef.current = window.setTimeout(() => {
+        finalizeTimerRef.current = null;
         const transcript = speechTranscriptRef.current.trim();
         speechTranscriptRef.current = '';
         handlers.onStop(blob, transcript || undefined);
       }, SPEECH_TRANSCRIPT_GRACE_MS);
     };
 
-    recorder.start(250);
+    try {
+      recorder.start(250);
+    } catch (error) {
+      startingRef.current = false;
+      recorderRef.current = null;
+      cleanupStream();
+      console.error('MediaRecorder start failed.', error);
+      handlers.onError(ERR_MIC_ACCESS);
+      return;
+    }
+    startingRef.current = false;
     handlers.onStart();
     timerRef.current = window.setTimeout(() => {
       stop();
     }, MAX_DURATION_MS);
   }, [cleanupStream, handlers, stop]);
 
-  return { start, stop };
+  return { start, stop, cancel };
 }

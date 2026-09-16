@@ -1,0 +1,20 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="363" height="163" viewBox="0 0 363 163" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Rectangle 1826" filter="url(#filter0_d_0_11)">
+<path d="M0 10C0 4.47715 4.47715 0 10 0H352C357.523 0 362 4.47715 362 10V150C362 155.523 357.523 160 352 160H10C4.47715 160 0 155.523 0 150V10Z" fill="url(#paint0_linear_0_11)"/>
+</g>
+<defs>
+<filter id="filter0_d_0_11" x="0" y="0" width="363" height="163" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dx="1" dy="3"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_11"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_11" result="shape"/>
+</filter>
+<linearGradient id="paint0_linear_0_11" x1="87.5489" y1="17.6744" x2="332.56" y2="147.729" gradientUnits="userSpaceOnUse">
+<stop stop-color="white"/>
+<stop offset="0.701923" stop-color="#FCF9F6"/>
+</linearGradient>
+</defs>
+</svg>

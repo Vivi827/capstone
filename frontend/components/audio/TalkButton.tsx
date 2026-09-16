@@ -21,8 +21,7 @@ const ARIA: Record<RecState["kind"], string> = {
 export function TalkButton({ rec, disabled = false, onPressStart, onPressStop }: TalkButtonProps) {
   const isRecording = rec.kind === "recording";
   const isInteractive = !disabled && (rec.kind === "idle" || rec.kind === "error" || isRecording);
-  const src = isRecording ? "/pally/talkbtn-thinking.png" : "/pally/talkbtn-idle.png";
-  const height = isRecording ? 109 : 104;
+  const src = isRecording ? "/pally/talkbtn-thinking.svg" : "/pally/talkbtn-idle.svg";
 
   const handleClick = () => {
     if (!isInteractive) return;
@@ -43,11 +42,11 @@ export function TalkButton({ rec, disabled = false, onPressStart, onPressStop }:
       )}
       disabled={!isInteractive}
       onClick={handleClick}
-      style={{ width: 104, height }}
+      style={{ width: 104, height: 104 }}
       type="button"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt="" aria-hidden className="pointer-events-none block h-full w-full select-none" height={height} src={src} width={104} />
+      <img alt="" aria-hidden className="pointer-events-none block h-[105.05px] w-full select-none" height={105.05} src={src} width={104} />
     </button>
   );
 }

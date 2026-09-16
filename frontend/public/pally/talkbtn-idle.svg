@@ -1,0 +1,24 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="104" height="105.051" viewBox="0 0 104 105.051" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Button/Talk">
+<circle id="ring" cx="52" cy="52" r="52" fill="#FFB84A"/>
+<g id=".Building Blocks/Talk/Mic" filter="url(#filter0_d_0_32)">
+<circle id="Ellipse 3" cx="52" cy="52" r="39.3939" fill="#FE9012"/>
+<g id=".Building Blocks/Icon/Microphone">
+<rect id="Rectangle 47" x="46.9773" y="37.7197" width="10.8333" height="19.8611" rx="5.41667" stroke="white" stroke-width="3.93939" stroke-linejoin="round"/>
+<path id="Ellipse 56" d="M39.5909 52.1641C39.5909 55.5597 40.9398 58.8162 43.3408 61.2173C45.7419 63.6183 48.9984 64.9672 52.3939 64.9672C55.7895 64.9672 59.046 63.6183 61.4471 61.2173C63.8481 58.8162 65.197 55.5597 65.197 52.1641" stroke="white" stroke-width="3.93939" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector 77" d="M52.3939 70.2197V66.6086" stroke="white" stroke-width="3.93939" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_0_32" x="1.43251" y="3.91552" width="101.135" height="101.135" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="2.48301"/>
+<feGaussianBlur stdDeviation="5.58678"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.22 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_32"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_32" result="shape"/>
+</filter>
+</defs>
+</svg>

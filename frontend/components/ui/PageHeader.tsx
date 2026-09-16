@@ -43,12 +43,10 @@ export function PageHeader({
       {showBackLink ? (
         <Link
           aria-label="뒤로 가기"
-          className="absolute left-5 top-[17px] grid size-9 place-items-center text-text transition-opacity hover:opacity-60"
+          className="absolute left-5 top-[17px] size-9 transition-opacity hover:opacity-60"
           href={backHref}
         >
-          <svg aria-hidden="true" className="size-5" viewBox="0 0 20 20" fill="none">
-            <path d="M16 10H4M9 5l-5 5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <img alt="" className="absolute left-px top-[10px] size-4" src="/icons/back.svg" />
         </Link>
       ) : null}
       <h1 className="absolute left-[61px] top-[17px] text-title-1 text-text">

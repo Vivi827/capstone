@@ -30,6 +30,7 @@ export interface ConversationState {
 
 export type Action =
   | { type: 'sessionId/set'; id: string }
+  | { type: 'session/load'; id: string; messages: Message[] }
   | { type: 'rec/start' }
   | { type: 'rec/stop' }
   | { type: 'rec/processed'; userMsg: Message; pallyMsg: Message }
@@ -37,7 +38,7 @@ export type Action =
   | { type: 'rec/error'; reason: 'permission-denied' | 'generic'; message: string }
   | { type: 'rec/dismissError' }
   | { type: 'history/toggle' }
-  | { type: 'session/end'; newId: string };
+  | { type: 'session/end' };
 
 export const initialState: ConversationState = {
   sessionId: null,
@@ -50,6 +51,8 @@ export function reducer(state: ConversationState, action: Action): ConversationS
   switch (action.type) {
     case 'sessionId/set':
       return { ...state, sessionId: action.id };
+    case 'session/load':
+      return { ...state, sessionId: action.id, messages: action.messages };
     case 'rec/start':
       return { ...state, rec: { kind: 'recording', startedAt: Date.now() } };
     case 'rec/stop':
@@ -74,7 +77,7 @@ export function reducer(state: ConversationState, action: Action): ConversationS
       return { ...state, historyOpen: !state.historyOpen };
     case 'session/end':
       return {
-        sessionId: action.newId,
+        sessionId: null,
         messages: [],
         rec: { kind: 'idle' },
         historyOpen: false,

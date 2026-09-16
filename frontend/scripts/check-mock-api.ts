@@ -1,3 +1,5 @@
+import { rejects } from "node:assert/strict";
+
 import { mockPallyApi, resetMockPallyApi } from "../lib/api/mock-client";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -36,8 +38,10 @@ async function main(): Promise<void> {
     idempotency_key: turnKey,
   });
   assert(turn.turn_id === repeatedTurn.turn_id, "Turn creation must be idempotent");
-  assert(turn.quota.remaining_turns === 4, "A successful turn must consume one quota unit");
-  assert(repeatedTurn.quota.remaining_turns === 4, "An idempotent replay must not consume quota again");
+  assert(!turn.replayed && repeatedTurn.replayed, "An idempotent retry must be marked as replayed");
+  assert(!turn.feedback_pending, "A successful feedback result must not be pending");
+  assert(turn.quota?.remaining_turns === 4, "A successful turn must consume one quota unit");
+  assert(repeatedTurn.quota?.remaining_turns === 4, "An idempotent replay must not consume quota again");
 
   const detail = await mockPallyApi.getConversation(created.conversation.id);
   assert(detail.turns.length === 1, "Conversation detail must include the created turn");
@@ -49,9 +53,20 @@ async function main(): Promise<void> {
   const list = await mockPallyApi.listConversations({ status: "completed" });
   assert(list.items.some((item) => item.id === created.conversation.id), "Completed conversation must appear in history");
 
-  await mockPallyApi.deleteConversations(crypto.randomUUID());
-  const emptyList = await mockPallyApi.listConversations();
-  assert(emptyList.items.length === 0, "Conversation deletion must clear history");
+  const products = await mockPallyApi.getBillingProducts();
+  assert(products.products.length === 2, "Billing products must come from the API contract");
+  const subscription = await mockPallyApi.getSubscription();
+  assert(!subscription.subscription.entitled, "Mock subscription must start on the free plan");
+  const checkout = await mockPallyApi.createCheckout({
+    product_id: products.products[0].id,
+    success_url: "https://example.com/settings/plans?checkout=success",
+    cancel_url: "https://example.com/settings/plans?checkout=cancel",
+  });
+  assert(checkout.checkout.product_id === products.products[0].id, "Checkout must preserve the selected product");
+
+  const deletion = await mockPallyApi.deleteAccount({ confirmation: "회원탈퇴" });
+  assert(deletion.status === "deleted", "Account deletion must complete immediately");
+  await rejects(() => mockPallyApi.getProfile(), "Deleted accounts must not access profile data");
 
   resetMockPallyApi();
   console.log("Mock API contract check passed.");

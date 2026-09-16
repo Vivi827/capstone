@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -38,27 +39,41 @@ function TabIcon({ id, active, size }: { id: string; active: boolean; size: numb
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const prefetchTab = useCallback((href: string) => {
+    router.prefetch(href);
+    void import("@/lib/api/route-data")
+      .then(({ prefetchRouteData }) => prefetchRouteData(href))
+      .catch((error: unknown) => {
+        console.error("Tab data prefetch failed", { href, error });
+      });
+  }, [router]);
 
   return (
     <nav
       aria-label="하단 내비게이션"
-      className="absolute bottom-[11px] left-1/2 z-30 h-[110px] w-[calc(100%-13px)] max-w-[389px] -translate-x-1/2"
+      className="absolute bottom-[11px] left-[5px] z-30 h-[110px] w-[calc(100%-13px)] max-w-[389px]"
     >
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-20 rounded-[20px] bg-nav" />
       <ul className="absolute inset-x-0 bottom-0 flex h-20 items-center justify-between px-7">
         {TABS.map((tab) => {
           const activePrefix = "activePrefix" in tab ? tab.activePrefix : tab.href;
-          const active = pathname === tab.href || pathname.startsWith(`${activePrefix}/`);
+          const active = pathname === activePrefix || pathname.startsWith(`${activePrefix}/`);
           return (
             <li key={tab.id}>
               <Link
                 aria-current={active ? "page" : undefined}
                 aria-label={tab.label}
                 className={cn(
-                  "grid size-12 place-items-center transition-transform active:scale-90",
+                  "relative grid place-items-center transition-transform after:absolute after:left-1/2 after:top-1/2 after:size-12 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] active:scale-90",
                   active && "text-primary-soft",
                 )}
                 href={tab.href}
+                onFocus={() => prefetchTab(tab.href)}
+                onPointerEnter={() => prefetchTab(tab.href)}
+                onTouchStart={() => prefetchTab(tab.href)}
+                style={{ width: tab.size, height: tab.size }}
               >
                 <TabIcon active={active} id={tab.id} size={tab.size} />
               </Link>

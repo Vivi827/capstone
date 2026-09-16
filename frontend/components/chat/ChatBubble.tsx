@@ -1,15 +1,39 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import type { Message } from '@/lib/types/message';
+import { cn } from '@/lib/utils';
 import { MessageRow } from './MessageRow';
 import { DateDivider } from './DateDivider';
+
+const KST_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+function formatConversationDate(createdAt: string): string {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid message createdAt: ${createdAt}`);
+  }
+
+  const parts = KST_DATE_FORMATTER.formatToParts(date);
+  const getPart = (type: 'year' | 'month' | 'day'): string => {
+    const part = parts.find((item) => item.type === type);
+    if (!part) throw new Error(`Missing ${type} in formatted conversation date`);
+    return part.value;
+  };
+
+  return `${getPart('year')}.${getPart('month')}.${getPart('day')}`;
+}
 
 export interface ChatBubbleProps {
   messages: readonly Message[];
   expanded: boolean;
   thinking?: boolean;
   listening?: boolean;
+  pendingUserTranscript?: string | null;
   onToggleExpand: () => void;
 }
 
@@ -60,16 +84,18 @@ export function ChatBubble({
   expanded,
   thinking = false,
   listening = false,
+  pendingUserTranscript = null,
   onToggleExpand,
 }: ChatBubbleProps) {
   if (expanded) {
-    return <LongBubble messages={messages} thinking={thinking} onCollapse={onToggleExpand} />;
+    return <LongBubble messages={messages} onCollapse={onToggleExpand} pendingUserTranscript={pendingUserTranscript} thinking={thinking} />;
   }
   return (
     <ShortBubble
       messages={messages}
       thinking={thinking}
       listening={listening}
+      pendingUserTranscript={pendingUserTranscript}
       onExpand={onToggleExpand}
     />
   );
@@ -79,11 +105,13 @@ function ShortBubble({
   messages,
   thinking,
   listening,
+  pendingUserTranscript,
   onExpand,
 }: {
   messages: readonly Message[];
   thinking: boolean;
   listening: boolean;
+  pendingUserTranscript: string | null;
   onExpand: () => void;
 }) {
   const lastPally = messages.findLast?.((m) => m.role === 'pally');
@@ -131,9 +159,9 @@ function ShortBubble({
             <MessageRow speaker="pally" transcript="" state="listening" />
           </>
         ) : thinking ? (
-          // Thinking: 마지막 유저 메시지 + Thinking...
+          // Show only the current recording preview so a previous utterance cannot flash here.
           <>
-            {lastUser && <MessageRow speaker="you" transcript={lastUser.transcript} compact />}
+            {pendingUserTranscript && <MessageRow speaker="you" transcript={pendingUserTranscript} compact />}
             <MessageRow speaker="pally" transcript="" state="thinking" />
           </>
         ) : (
@@ -162,12 +190,17 @@ function ShortBubble({
 function LongBubble({
   messages,
   thinking,
+  pendingUserTranscript,
   onCollapse,
 }: {
   messages: readonly Message[];
   thinking: boolean;
+  pendingUserTranscript: string | null;
   onCollapse: () => void;
 }) {
+  const dateSource = messages.length > 0 ? messages[0].createdAt : new Date().toISOString();
+  const conversationDate = formatConversationDate(dateSource);
+
   return (
     <section
       aria-label="전체 대화 기록"
@@ -184,7 +217,7 @@ function LongBubble({
 
       {/* 메시지 리스트 — Figma 427:2804 spec: padding 24px / 16px, gap 12px */}
       <div className="absolute top-[56px] left-[16px] right-[16px] bottom-[80px] flex flex-col gap-3 overflow-y-auto">
-        <DateDivider kind="date" label="2026.05.25" />
+        <DateDivider kind="date" label={conversationDate} />
         {messages.map((m, idx) => (
           <MessageRow
             key={`${m.role}-${idx}`}
@@ -192,9 +225,12 @@ function LongBubble({
             transcript={m.transcript}
           />
         ))}
-        {/* Thinking 상태: 메시지 리스트 맨 아래에 pending 응답으로 표시 */}
+        {/* Append the current utterance preview before the pending response. */}
         {thinking && (
-          <MessageRow speaker="pally" transcript="" state="thinking" />
+          <>
+            {pendingUserTranscript && <MessageRow speaker="you" transcript={pendingUserTranscript} />}
+            <MessageRow speaker="pally" transcript="" state="thinking" />
+          </>
         )}
       </div>
 

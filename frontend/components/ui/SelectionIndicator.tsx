@@ -9,19 +9,9 @@ export function SelectionIndicator({ selected = false, className }: SelectionInd
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        "grid size-10 place-items-center rounded-full border-2",
-        selected
-          ? "border-accent-strong bg-accent-strong text-white"
-          : "border-text-tertiary bg-transparent text-text-tertiary",
-        className,
-      )}
+      className={cn("block h-10 w-[39.35px]", className)}
     >
-      {selected ? (
-        <svg className="size-5" fill="none" viewBox="0 0 20 20">
-          <path d="m4 10 4 4 8-9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-        </svg>
-      ) : null}
+      <img alt="" className="size-full" src={selected ? "/icons/selection-selected.svg" : "/icons/selection-default.svg"} />
     </span>
   );
 }

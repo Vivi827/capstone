@@ -14,6 +14,7 @@ export const MOCK_PROFILE: UserProfile = {
   english_level: "B1",
   onboarding_completed: false,
   traits: [],
+  avatar_url: null,
   created_at: "2026-08-01T09:00:00Z",
   updated_at: "2026-08-01T09:00:00Z",
 };
@@ -53,7 +54,7 @@ export const MOCK_TURNS: ConversationTurn[] = [
     user_transcript: "I had no lunch. I'm on a diet.",
     pally_text: "Oh no, you skipped lunch because you're on a diet? What would you like to eat later?",
     pally_audio_url: null,
-    axes: MOCK_CONVERSATIONS[0].current_axes,
+    axes: MOCK_CONVERSATIONS[0].current_axes!,
     character: {
       tone_casual: 58,
       energy_level: 58,
@@ -66,6 +67,7 @@ export const MOCK_TURNS: ConversationTurn[] = [
         explanation_ko: "점심을 거른 상황에는 skipped lunch가 더 자연스러워요.",
       },
     ],
+    feedback_pending: false,
     warnings: [],
     created_at: "2026-07-31T09:00:03Z",
   },
@@ -77,7 +79,7 @@ export const MOCK_TURNS: ConversationTurn[] = [
     user_transcript: "Maybe I will eat salad tonight.",
     pally_text: "A salad sounds refreshing. What do you like to put in it?",
     pally_audio_url: null,
-    axes: MOCK_CONVERSATIONS[0].current_axes,
+    axes: MOCK_CONVERSATIONS[0].current_axes!,
     character: {
       tone_casual: 58,
       energy_level: 58,
@@ -90,6 +92,7 @@ export const MOCK_TURNS: ConversationTurn[] = [
         explanation_ko: "식사 메뉴를 말할 때는 have a salad가 더 자연스러워요.",
       },
     ],
+    feedback_pending: false,
     warnings: [],
     created_at: "2026-07-31T09:04:03Z",
   },

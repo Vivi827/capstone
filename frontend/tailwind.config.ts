@@ -37,6 +37,14 @@ const config: Config = {
           "system-ui",
           "sans-serif",
         ],
+        sf: [
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Apple SD Gothic Neo",
+          "sans-serif",
+        ],
       },
       fontSize: {
         display: ["36px", { lineHeight: "44px", fontWeight: "700" }],

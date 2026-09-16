@@ -23,14 +23,17 @@ Returned FeedbackItem dict shape:
 from __future__ import annotations
 
 import json
+import logging
 import os
+import re
 from typing import Dict, List, Tuple
 
 import httpx
 
 _FEEDBACK_SYSTEM_PROMPT = '''\
 You are Pally, a friendly English conversation tutor.
-Analyze the user's utterance and provide structured feedback.
+Extract only corrections already expressed in Pally's reply to the user.
+You are recording the conversation's feedback, not performing a new review.
 
 Return ONLY valid JSON with exactly these three fields or an array of items:
 [
@@ -41,9 +44,52 @@ Return ONLY valid JSON with exactly these three fields or an array of items:
   }
 ]
 
+Context:
+- The utterance is a speech-to-text (STT) transcript of spoken conversation
+  practice, not written text the user typed.
+- STT transcripts naturally have no sentence-initial capitalization and no
+  end punctuation (periods, question marks, commas). That is a transcription
+  artifact, not something the user got wrong.
+- Judge the utterance against spoken conversational English norms (구어체),
+  not formal written English norms (문어체).
+- "Pally" (or whatever name the user calls their conversation partner) is
+  the tutor's own name — a proper noun, never a misspelled word.
+
 Rules:
-- If the user's utterance does not need correction, return an empty array []
+- Include a correction only when Pally's reply actually recasts the user's
+  mistaken expression in its corrected form. An uncorrected error must NOT
+  appear in the output, even if you know how to fix it.
+- Copy original verbatim from the user utterance and corrected verbatim from
+  Pally's reply. Use short matching spans, not newly reconstructed sentences.
+- A reaction, summary, synonym substitution, or change of perspective alone
+  is NOT a correction. Return [] if Pally did not correct anything.
+- Explain only the recorded correction in Korean; do not add further advice
+  or introduce any correction absent from Pally's reply.
+- NEVER flag capitalization or punctuation (periods, commas, question marks)
+  as something to correct. Ignore these entirely, even when other real
+  issues are present in the same sentence.
+- NEVER flag proper nouns, names, or the tutor's own name as a spelling or
+  word-choice error.
+- Only return items for genuine grammar mistakes, verb tense/agreement
+  errors, or unnatural word choice — things that would still sound wrong in
+  casual spoken English.
+- If the user's utterance does not need correction (once capitalization and
+  punctuation are ignored), return an empty array []
 - Keep each explanation_ko brief (1-2 sentences)
+
+Examples:
+User: "she want cookies"
+Pally: "Oh, she wants cookies? What kind does she like?"
+Output: [{"original":"she want","corrected":"she wants","explanation_ko":"3인칭 단수 현재형에는 동사에 -s를 붙여요."}]
+
+User: "she want cookies"
+Pally: "What kind of cookies?"
+Output: []
+Reason: Pally did not say "she wants". Do not infer a correction from a question.
+
+User: "I am happy"
+Pally: "That is wonderful! What happened?"
+Output: []
 '''
 
 
@@ -156,6 +202,35 @@ def _fallback_rule_based(utterance: str) -> List[Dict]:
     return []
 
 
+def _feedback_tokens(text: str) -> list[str]:
+    # STT punctuation and casing are not corrections. Preserve word boundaries
+    # so e.g. "he" cannot match inside "she".
+    return re.findall(r"[^\W_]+(?:'[^\W_]+)*", text.replace("\u2019", "'").casefold())
+
+
+def _contains_span(source: list[str], span: list[str]) -> bool:
+    return bool(span) and any(
+        source[i:i + len(span)] == span for i in range(len(source) - len(span) + 1)
+    )
+
+
+def _ground_feedback(items: List[Dict], utterance: str, reply: str) -> List[Dict]:
+    user_tokens = _feedback_tokens(utterance)
+    reply_tokens = _feedback_tokens(reply)
+    grounded = []
+    for item in items:
+        if not all(isinstance(item.get(key), str) and item[key].strip()
+                   for key in ("original", "corrected", "explanation_ko")):
+            raise ValueError("Feedback contains invalid fields")
+        original = _feedback_tokens(item["original"])
+        corrected = _feedback_tokens(item["corrected"])
+        if not _contains_span(user_tokens, original) or not _contains_span(reply_tokens, corrected):
+            raise ValueError("Feedback correction is not grounded in the conversation")
+        if original != corrected:
+            grounded.append(item)
+    return grounded
+
+
 def generate_feedback(utterance: str, pally_reply: str, level: str) -> Tuple[List[Dict], bool]:
     """Generate structured feedback items for a single user turn.
 
@@ -174,14 +249,16 @@ def generate_feedback(utterance: str, pally_reply: str, level: str) -> Tuple[Lis
         api_key = os.getenv('GOOGLE_AI_API_KEY')
         if not api_key:
             raise RuntimeError('GOOGLE_AI_API_KEY not configured')
-        return _call_gemini_feedback(utterance, pally_reply), False
-    except Exception:
-        pass
+        items = _call_gemini_feedback(utterance, pally_reply)
+        return _ground_feedback(items, utterance, pally_reply), False
+    except Exception as exc:
+        # Log only the error type: HTTP errors may include credential-bearing URLs.
+        logging.warning("Feedback extraction failed: %s", type(exc).__name__)
 
     # Degraded: rule-based fallback. Still marked failed=True — it's a
     # conservative safety net, not a substitute for real grammar checking.
     try:
-        return _fallback_rule_based(utterance), True
+        return _ground_feedback(_fallback_rule_based(utterance), utterance, pally_reply), True
     except Exception:
         return [], True
 
