@@ -81,15 +81,17 @@ DEFAULT_TTS_VOICE = os.getenv("PALLY_TTS_VOICE", "").strip() or "en-US-Chirp3-HD
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    # Pool connections across turns, but never across event loops or app restarts.
+    # Shared client for every outbound Google API call (STT/Gemini/TTS), so each
+    # turn reuses warm TLS connections instead of paying a fresh handshake per
+    # call. Per-request timeout overrides are passed at call time.
     async with httpx.AsyncClient(
-        timeout=15.0, limits=httpx.Limits(keepalive_expiry=60.0),
+        timeout=30.0, limits=httpx.Limits(keepalive_expiry=60.0),
     ) as client:
-        application.state.tts_client = client
+        application.state.http_client = client
         try:
             yield
         finally:
-            application.state.tts_client = None
+            application.state.http_client = None
 
 
 app = FastAPI(title="Pally Backend API", version="1.0.0", lifespan=lifespan)
@@ -520,11 +522,11 @@ async def stt(audio: UploadFile = File(...)):
         "audio": {"content": base64.b64encode(audio_bytes).decode()},
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"https://speech.googleapis.com/v1/speech:recognize?key={GOOGLE_CLOUD_API_KEY}",
-            json=payload,
-        )
+    resp = await app.state.http_client.post(
+        f"https://speech.googleapis.com/v1/speech:recognize?key={GOOGLE_CLOUD_API_KEY}",
+        json=payload,
+        timeout=30.0,
+    )
 
     if resp.status_code != 200:
         logging.error(
@@ -583,12 +585,13 @@ async def _call_google_tts(
         },
     }
 
-    client = app.state.tts_client
+    client = app.state.http_client
     if client is None:
-        raise RuntimeError("TTS client is not running")
+        raise RuntimeError("HTTP client is not running")
     resp = await client.post(
         f"https://texttospeech.googleapis.com/v1/text:synthesize?key={GOOGLE_CLOUD_API_KEY}",
         json=payload,
+        timeout=15.0,
     )
 
     if resp.status_code != 200:
@@ -698,12 +701,12 @@ async def _call_gemini_feedback(utterance: str, axes: dict) -> dict:
         },
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
-            json=payload,
-        )
+    resp = await app.state.http_client.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
+        json=payload,
+        timeout=30.0,
+    )
 
     if resp.status_code != 200:
         raise RuntimeError(f"Gemini error {resp.status_code}: {resp.text}")
@@ -845,12 +848,12 @@ async def _call_gemini_chat(
         },
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
-            json=payload,
-        )
+    resp = await app.state.http_client.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
+        json=payload,
+        timeout=30.0,
+    )
 
     if resp.status_code != 200:
         raise RuntimeError(f"Gemini chat error {resp.status_code}: {resp.text}")
@@ -902,12 +905,12 @@ async def _call_gemini_hint_ko(utterance: str, pally_reply: str) -> InlineHintKo
             "thinkingConfig": {"thinkingBudget": 0},
         },
     }
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
-            json=payload,
-        )
+    resp = await app.state.http_client.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
+        json=payload,
+        timeout=20.0,
+    )
     if resp.status_code != 200:
         raise RuntimeError(f"Gemini hint error {resp.status_code}: {resp.text}")
     parts = resp.json()["candidates"][0]["content"]["parts"]
@@ -1350,11 +1353,11 @@ async def _stt_from_bytes(audio_bytes: bytes, content_type: str) -> tuple[str, f
         config["audioChannelCount"] = num_channels
 
     payload = {"config": config, "audio": {"content": base64.b64encode(audio_bytes).decode()}}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            f"https://speech.googleapis.com/v1/speech:recognize?key={GOOGLE_CLOUD_API_KEY}",
-            json=payload,
-        )
+    resp = await app.state.http_client.post(
+        f"https://speech.googleapis.com/v1/speech:recognize?key={GOOGLE_CLOUD_API_KEY}",
+        json=payload,
+        timeout=30.0,
+    )
     if resp.status_code != 200:
         raise RuntimeError(f"Google STT error {resp.status_code}: {resp.text[:300]}")
 
