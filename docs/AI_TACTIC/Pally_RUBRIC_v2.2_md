@@ -1,0 +1,384 @@
+# Pally 측정 Rubric v2.2 — 단일 발화 3축 평가 최종본
+
+기준일: 2026-09-20  
+상태: **현재 실험용 고정본**  
+주 평가축: **Humor**  
+보조 평가축: **Formality, Curiosity**  
+현재 미측정축: **Energy, Intimacy (`null`)**
+
+> 이 문서는 v2.1의 검토 내용을 단일 발화 실험 조건에 맞게 고정한 v2.2다. 아래 가중치는 선행연구가 확정한 보편적 계수가 아니라, 인간 평가 전에 고정하는 Pally의 operational definition이다. dev 결과를 보고 변경하면 v2.2를 덮어쓰지 않고 v2.2.1 이상으로 버전을 올린다.
+
+## 1. v2.1에서 달라진 점
+
+| 항목 | v2.1 | v2.2 |
+|---|---|---|
+| 평가 입력 | 축에 따라 직전 턴·관찰 기간·음성·이력 사용 | 현재 실험은 `target_utterance` 한 문장만 사용 |
+| Formality | 구어적 공손성, 일부 직전 맥락 고려 | 발화 안에서 관찰되는 공손성·격식성 |
+| Humor | 관찰 기간의 밈·유행어 사용 빈도 | 현재 발화에서 지각되는 유희적 의도 |
+| Curiosity | 관찰 기간의 자발적 질문 비율 | 현재 발화에서 나타나는 탐색 의도 |
+| Energy | 실제 음성 기준 | 원음이 없으므로 `null` |
+| Intimacy | 사용 이력·시간 기준 | 이력이 없으므로 `null` |
+| 문법 오류 | 축별 상세 처리 미고정 | 오류 자체의 직접 가중치 0%; 의도적 변형만 별도 근거로 기록 |
+| 경계 사례 | 서술형 검토 | 축별 `clear`, `boundary`, `context_insufficient` 기록 |
+
+v2.1과 v2.2의 Humor·Curiosity 점수는 측정 단위가 달라 직접적인 전후 점수로 간주하지 않는다. v2.1 자료를 v2.2 정답으로 이름만 바꿔 사용하지 않는다.
+
+## 2. 평가 단위와 순서
+
+```text
+현재 발화 한 문장 확인
+  → ① 주 발화 기능 1개 선택
+  → ② 필요하면 보조 발화 기능 1개 선택
+  → ③ 문법·비표준 표현 상태 선택
+  → ④ Formality / Humor / Curiosity 독립 평가
+  → ⑤ 축별 경계 사례·점수 상태·확신도·근거 기록
+```
+
+- 평가자는 직전·다음 턴, 출처 corpus, 모델 점수, 다른 평가자의 점수를 보지 않는다.
+- `0`은 축의 낮은 끝을 관찰했다는 뜻이고, `null`은 해당 입력으로 측정하지 않았다는 뜻이다.
+- 높은 점수가 좋은 성격이나 높은 영어 실력을 뜻하지 않는다.
+- 세 축 점수를 합쳐 하나의 종합 스타일 점수를 만들지 않는다.
+
+## 3. 공통 발화 기능 10개
+
+평가자는 **상대에게 주로 어떤 반응을 요구하는가**를 기준으로 주 기능 하나를 선택한다. 두 기능이 명확하면 보조 기능 하나를 추가한다. 기능을 결정하기 어렵다면 억지로 새 범주를 만들지 않고 `function_ambiguous=true`로 표시한다.
+
+| 코드 | 발화 기능 | 판정 기준 | 예시 |
+|---|---|---|---|
+| `inform_describe` | 사실 전달·상황 묘사 | 사건·상태·객관적 정보를 전달 | “The train leaves at six.” |
+| `self_disclose` | 개인 경험·상태 공유 | 자신의 경험·감정·상태를 알림 | “I felt nervous during the interview.” |
+| `opinion_evaluate` | 의견·평가 | 사람·사물·상황에 대한 판단을 표현 | “That ending was surprisingly good.” |
+| `ask_fact_meaning` | 사실·정의 질문 | 사실, 명칭, 단어 의미처럼 한정된 정보를 요구 | “What does maintain mean?” |
+| `ask_explain_explore` | 이유·설명·탐색 질문 | 원리, 이유, 비교, 가정, 관점을 확장해 요구 | “Why does that happen?” |
+| `confirm_clarify` | 확인·명료화 | 맞음·틀림, 이해, 들은 내용, 선택지를 확인 | “Do you mean the first one?” |
+| `request_direct` | 행동 요청·지시·제안 | 상대가 무엇인가 수행하거나 함께 하도록 요구 | “Could you open the file?” |
+| `social_phatic` | 인사·안부·관계 유지 | 정보 획득보다 사회적 연결과 대화 지속이 주목적 | “How are you?” / “How about you?” |
+| `answer_acknowledge` | 답변·동의·백채널 | 앞선 말에 답하거나 수용·동의·청취를 표시 | “Yes, that makes sense.” / “Really?” |
+| `express_react` | 감정·반응 표현 | 놀람, 기쁨, 불만, 감탄 등 즉각적 반응을 표현 | “That’s amazing!” |
+
+`joke`, `humorous`, `playful`을 발화 기능으로 사용하지 않는다. Humor 정답이 기능 선택 단계에 미리 포함되는 순환 판단을 막기 위해서다. 유머는 위 10개 기능 어디에서나 나타날 수 있다.
+
+다기능 예시:
+
+```json
+{
+  "target_utterance": "That sounds great—how did you do it?",
+  "primary_function": "ask_explain_explore",
+  "secondary_function": "express_react",
+  "function_ambiguous": false
+}
+```
+
+## 4. 문법 오류와 비표준 표현
+
+문법적 정확성을 Formality·Humor·Curiosity의 직접 점수로 사용하지 않는다. 먼저 다음 상태를 별도로 기록한다.
+
+| `language_form` | 정의 | 축 평가 원칙 |
+|---|---|---|
+| `standard_or_unmarked` | 뚜렷한 오류·비표준성이 없음 | 일반 절차로 평가 |
+| `likely_learner_error` | 의미는 전달되나 비의도적 학습자 오류로 보임 | Formality 감점·Humor 가점 금지 |
+| `conventional_nonstandard` | `ain't`, 축약, 구어 문법처럼 관습화된 비표준형 | register 단서로만 제한적으로 반영 |
+| `playful_deviation` | 의도적 철자·문법 파괴, 밈 문형, 과장된 반복 등 유희적 변형의 근거가 있음 | Humor의 보조 근거로 사용 가능; 이것만으로 고득점 금지 |
+| `intent_unclear` | 오류인지 의도적 변형인지 단일 발화로 판정 불가 | 점수에 직접 반영하지 않고 경계 상태로 기록 |
+
+| 발화 | 처리 예시 |
+|---|---|
+| “He go to school yesterday.” | `likely_learner_error`; 오류 자체로 Formality·Humor 점수를 바꾸지 않음 |
+| “pls halp, my brain has left the chat” | 인터넷 문체와 의도적 과장이 확인되면 `playful_deviation` |
+| “I can has cheezburger?” | 밈 문형으로 사용됐다는 근거가 있을 때 `playful_deviation` |
+| “Why you do this?” | 학습자 오류와 의도적 구어체를 구분하기 어려우면 `intent_unclear` |
+
+### 문법 관련 직접 가중치
+
+| 축 | 직접 가중치 | 허용되는 간접 반영 |
+|---|---:|---|
+| Formality | 0% | `conventional_nonstandard`가 register 선택을 분명히 보일 때만 반영 |
+| Humor | 0% | `playful_deviation`과 별도의 유희 의도 근거가 함께 있을 때만 반영 |
+| Curiosity | 0% | 문법이 틀려도 탐색 기능과 내용이 같으면 동일하게 평가 |
+
+## 5. 공통 점수 계산
+
+각 축의 구성요소를 `0, 1, 2, 3, 4` 중 하나로 평가한다.
+
+| 수준 | 공통 의미 |
+|---:|---|
+| 0 | 축의 낮은 끝. Humor·Curiosity에서는 관련 특성이 없음 |
+| 1 | 낮은 편이나 약한 단서가 일부 있음 |
+| 2 | 중립·중간 수준 또는 상충하는 단서가 있음 |
+| 3 | 높은 편이며 명확한 단서가 있음 |
+| 4 | 축의 높은 끝에 해당하는 강한 단서가 일관되게 나타남 |
+
+```text
+raw_score = 25 × Σ(component_level × component_weight)
+axis_score = round_to_5(raw_score)
+```
+
+- 구성요소 가중치의 합은 축마다 `1.00`이다.
+- 결과는 `0–100` 범위에서 가장 가까운 5점 단위로 반올림한다.
+- `case_type`, 확신도, 문법 정확성, 문장 길이는 점수식에 직접 더하거나 빼지 않는다.
+- Formality는 양극형 척도다. 대인 요청이 없는 중립적 사실문에서는 존중·완화 요소를 원칙적으로 수준 `2`에 둔다.
+- Humor와 Curiosity는 단방향 사건 강도 척도다. 유희·탐색 단서가 전혀 없으면 관련 요소를 수준 `0`에 둔다.
+
+## 6. Formality — 발화 내 구어적 공손성·격식성
+
+### Operational definition
+
+현재 발화가 상대를 얼마나 존중하고, 요구를 얼마나 완화하며, 어떤 구어 register를 선택하는지 평가한다. 문어체 수준이나 문법 시험 점수가 아니다.
+
+### 구성요소 가중치
+
+| 구성요소 | 가중치 | 수준 0 | 수준 2 | 수준 4 |
+|---|---:|---|---|---|
+| 상대 존중·체면 고려 | 40% | 비하·압박·상대 무시 | 중립적이거나 대인 행위 없음 | 상대 입장·편의·체면을 명시적으로 고려 |
+| 직접성 완화 | 35% | 직접 명령·강한 요구 | 중립적 표현 또는 통상적 요청 | 허락·선택권·부담 완화를 강하게 제공 |
+| 구어 register | 25% | 매우 캐주얼·비격식 | 일상적 중립 회화 | 매우 격식적·공식적 구어 |
+
+```text
+Formality = round_to_5(25 × (
+    0.40 × respect_face
+  + 0.35 × mitigation
+  + 0.25 × spoken_register
+))
+```
+
+### Anchor
+
+| 점수 | 예시 | 판단 근거 |
+|---:|---|---|
+| 0 | “Fix this for me.” | 직접 명령이며 완화와 상대 고려가 거의 없음 |
+| 25 | “Can you fix this for me?” | 요청 형식이나 완화가 제한적 |
+| 50 | “Could you help me fix this?” | 중립적인 회화의 정중한 요청 |
+| 75 | “Could you help me fix this when you have a moment?” | 상대의 시간을 고려하고 요구를 완화 |
+| 100 | “Sorry to bother you, but would you mind helping me fix this when it’s convenient?” | 사과·허락·상대 편의를 함께 명시 |
+
+`please` 하나, 긴 문장, 정확한 문법만으로 점수를 올리지 않는다.
+
+## 7. Energy — 현재 실험에서 미측정
+
+Energy는 실제 음성의 억양·강세·리듬·길이·음량 변화를 필요로 한다. 현재 실험은 단일 텍스트만 사용하므로 다음처럼 처리한다.
+
+```json
+{"Energy": null}
+```
+
+- 가중치: **미설정**
+- `0`으로 대체하지 않는다.
+- 느낌표, 대문자, 반복만으로 음성 Energy를 추정하지 않는다.
+- 향후 원음 실험에서 별도 audio rubric과 가중치를 버전으로 고정한다.
+
+## 8. Intimacy — 현재 실험에서 미측정
+
+Intimacy는 사용자·Pally 관계 이력, 유효 상호작용, 경과시간을 필요로 한다. 현재 단일 발화 실험에는 이 정보가 없으므로 다음처럼 처리한다.
+
+```json
+{"Intimacy": null}
+```
+
+- 가중치: **미설정**
+- 친근한 단어 하나로 실제 관계 친숙도를 추정하지 않는다.
+- 향후 관계 상태 계산식은 발화 점수 모델과 분리해 버전 관리한다.
+
+## 9. Humor — 발화에서 지각되는 유희적 의도
+
+### Operational definition
+
+현재 발화 자체에서 관찰되는 장난스러운 프레이밍, 비문자적 의미, 불일치·반전, 말장난, 과장, 아이러니, 밈·슬랭의 유희적 사용 정도를 평가한다. 표현이 최신 유행인지, 평가자가 실제로 웃었는지, 사용자가 재미있는 사람인지는 측정하지 않는다.
+
+### 구성요소 가중치
+
+| 구성요소 | 가중치 | 수준 0 | 수준 2 | 수준 4 |
+|---|---:|---|---|---|
+| 유희적 의도·프레이밍 | 40% | 문자적·중립적 전달 | 장난 가능성이 있으나 불명확 | 유희적 전달 의도가 강하고 일관됨 |
+| 비문자성·불일치·반전 | 30% | 문자 의미 그대로 | 약한 과장·중의성 | 말장난·아이러니·강한 반전·예상 위반 |
+| 관습적 유머·밈·슬랭 단서 | 20% | 관련 단서 없음 | 표현은 있으나 의미·용도가 불확실 | 검수된 표현을 유희적 의미로 명확히 사용 |
+| 표현 강화 | 10% | 강화 방식 없음 | 일부 반복·리듬·표기 변형 | 유희를 분명히 강화하는 의도적 형식 사용 |
+
+```text
+Humor = round_to_5(25 × (
+    0.40 × playful_framing
+  + 0.30 × nonliteral_incongruity
+  + 0.20 × humor_meme_slang_cue
+  + 0.10 × expressive_reinforcement
+))
+```
+
+### Anchor
+
+| 점수 | 예시 | 판단 근거 |
+|---:|---|---|
+| 0 | “I stayed home and watched a movie.” | 유희·비문자성 단서가 없는 문자적 진술 |
+| 25 | “Well, that went great.” | 억양 없이도 반어 가능성이 있으나 단일 문장에서는 약하고 모호함 |
+| 50 | “My alarm clock and I are in a toxic relationship.” | 명확한 의인화와 가벼운 불일치가 있음 |
+| 75 | “Girl, you ate—and left absolutely no crumbs.” | 검수 가능한 슬랭 의미와 과장된 유희적 칭찬이 결합됨 |
+| 100 | “My deadline saw me relaxing and said, ‘Absolutely not,’ then spawned three side quests.” | 의인화·반전·과장·확장된 유희 프레이밍이 강하게 결합됨 |
+
+### Humor 경계 규칙
+
+- 단순 슬랭 출현은 Humor 고득점의 충분조건이 아니다.
+- 단순 문법 오류는 Humor 근거가 아니다.
+- 의도적 문법 파괴는 `playful_deviation`과 다른 유희 단서가 함께 있을 때만 반영한다.
+- 인용, 뜻 질문, 따라 말하기는 자발적 유머 사용과 구분한다.
+- 문자적 의미와 슬랭 의미가 모두 가능하면 `boundary` 또는 `context_insufficient`로 표시한다.
+
+## 10. Curiosity — 현재 발화의 탐색 의도
+
+### Operational definition
+
+현재 발화가 정보, 설명, 이유, 관점, 가능성 또는 추가 탐색을 얼마나 명시적으로 요구하는지 평가한다. 사용자가 평소 질문을 얼마나 자주 하는지나 장기적인 성격은 측정하지 않는다.
+
+### 구성요소 가중치
+
+| 구성요소 | 가중치 | 수준 0 | 수준 2 | 수준 4 |
+|---|---:|---|---|---|
+| 탐색 요구 강도 | 50% | 답이나 정보 요구 없음 | 제한된 확인·반응 요구 | 정보·설명·관점을 명시적으로 요구 |
+| 탐색 깊이 | 25% | 탐색 없음 | 단일 사실·의미 확인 | 이유·원리·비교·가정까지 탐색 |
+| 답변 개방성 | 15% | 실질적 답이 필요 없음 | 짧고 제한된 답이면 충분 | 설명·근거·복수 가능성을 요구 |
+| 인식적 표지 | 10% | 모름·궁금함 표지 없음 | 정보 부족이 간접적으로 드러남 | 알고 싶은 점·불확실성을 명시 |
+
+```text
+Curiosity = round_to_5(25 × (
+    0.50 × inquiry_strength
+  + 0.25 × exploration_depth
+  + 0.15 × answer_openness
+  + 0.10 × epistemic_signal
+))
+```
+
+### 질문 기능별 허용 범위
+
+Curiosity 계산 전에 현재 발화의 주된 기능을 확인한다. 계산 결과가 다음 범위를 벗어나면 해당 범위로 제한한다.
+
+| 기능 | 허용 점수 범위 |
+|---|---:|
+| 비질문 진술 | 0–15 |
+| 수사 질문·단순 되묻기 | 10–30 |
+| 행동 요청 | 10–30 |
+| 확인 질문 | 25–50 |
+| 의례적 안부·대화권 반환 | 30–55 |
+| 사실·단어 의미 질문 | 45–70 |
+| 의견·선택 요청 | 55–80 |
+| 이유·원리·과정 질문 | 70–95 |
+| 한 발화 안의 가정·비교·후속 탐색 | 85–100 |
+
+```text
+Curiosity_final = round_to_5(
+  clamp(Curiosity_raw, function_min, function_max)
+)
+```
+
+### Anchor
+
+| 점수 | 예시 | 판단 근거 |
+|---:|---|---|
+| 0 | “I went hiking yesterday.” | 질문·정보 요청·탐색 표지가 없음 |
+| 25 | “Can you open the file?” | 의문문 형태지만 주기능은 행동 요청 |
+| 50 | “Is this the correct answer?” | 명시적인 확인 질문이며 답의 범위가 제한됨 |
+| 75 | “What do you think would work better?” | 관점과 대안을 요구하고 설명을 유도 |
+| 100 | “Why does this happen, and how would it change if we removed this step?” | 이유·메커니즘·가정적 후속 탐색이 한 발화에 결합됨 |
+
+물음표, `what/why/how`, 정중 표현, 문장 길이에 직접 가중치를 주지 않는다.
+
+## 11. 경계 사례와 점수 상태
+
+각 축에 대해 별도로 기록한다.
+
+| `case_type` | 의미 |
+|---|---|
+| `clear` | 현재 발화에서 우세한 의미와 축 점수를 안정적으로 판단 가능 |
+| `boundary` | 복수 해석이 가능하지만 현재 발화 안에서 우세한 판단은 가능 |
+| `context_insufficient` | 문맥 없이는 우세한 의미나 의도를 결정하기 어려움 |
+
+| `score_status` | 의미 |
+|---|---|
+| `final` | 현재 발화에서 점수를 확정할 근거가 충분함 |
+| `provisional` | 숫자는 기록하지만 문맥 부족으로 잠정적임 |
+
+- Formality·Humor·Curiosity는 모든 행에서 `0–100` 숫자를 기록한다.
+- `context_insufficient`에서도 현재 발화에서 가장 지지되는 해석의 잠정 점수를 기록한다.
+- 자료 부족을 뜻하는 기본값으로 50점을 넣지 않는다.
+- `case_type`과 `score_status`는 점수에 가감하지 않는다.
+
+예: “Sure, genius.”는 Curiosity가 명확히 낮을 수 있지만, Formality와 Humor는 진심 칭찬인지 비꼼인지 문맥이 부족할 수 있다.
+
+## 12. 평가자 기록 스키마
+
+```json
+{
+  "item_id": "u-001",
+  "target_utterance": "pls halp, my brain has left the chat",
+  "input_scope": "single_utterance",
+  "rubric_version": "v2.2",
+  "primary_function": "request_direct",
+  "secondary_function": "express_react",
+  "function_ambiguous": false,
+  "language_form": "playful_deviation",
+  "scores": {
+    "Formality": 25,
+    "Energy": null,
+    "Intimacy": null,
+    "Humor": 80,
+    "Curiosity": 15
+  },
+  "case_type": {
+    "Formality": "clear",
+    "Humor": "clear",
+    "Curiosity": "clear"
+  },
+  "score_status": {
+    "Formality": "final",
+    "Humor": "final",
+    "Curiosity": "final"
+  },
+  "confidence": {
+    "Formality": 4,
+    "Humor": 4,
+    "Curiosity": 4
+  },
+  "evidence": {
+    "Formality": "인터넷 축약과 캐주얼 register",
+    "Humor": "의도적 표기 변형과 비문자적 과장",
+    "Curiosity": "정보 탐색보다 도움 요청이 주기능"
+  },
+  "annotator_id": "A",
+  "label_source": "independent_human"
+}
+```
+
+## 13. 학습 가중치와 평가 사용
+
+Rubric의 **구성요소 가중치**와 모델 학습의 **샘플 가중치**를 구분한다.
+
+| 인간 라벨 상태 | 점수 학습 가중치 | `case_type` 학습 가중치 |
+|---|---:|---:|
+| `clear`, `score_status=final` | 1.0 | 1.0 |
+| `boundary`, `score_status=final` | 1.0 | 1.0 |
+| `context_insufficient`, `score_status=provisional` | 0.0 | 1.0 |
+| LLM·rule pseudo-label | human-grounded 주 실험에서 0.0 | human-grounded 주 실험에서 0.0 |
+
+경계 사례는 이번 연구의 핵심이므로 점수 학습 가중치를 임의로 낮추지 않는다. `context_insufficient`의 잠정 점수는 보존하되 점수 회귀 target으로 사용하지 않고, 판단 불가능 상태의 분류에는 사용한다.
+
+## 14. 실험 적용 원칙
+
+1. 이 문서의 기능 분류, 가중치, anchor, 경계를 인간 평가 전에 고정한다.
+2. 평가자는 모델 출력·기존 AI 점수·출처·다른 평가자 점수를 보지 않는다.
+3. 평가자별 원점수·기능·근거·확신도를 보존한다.
+4. 연습 문장은 train/dev/final에서 제외한다.
+5. Rubric 수정과 모델 선택은 dev에서만 수행한다.
+6. final test는 학습·수정·프롬프트 조정에 사용하지 않는다.
+7. Humor가 주 평가축이다. Formality와 Curiosity는 보조 결과로 별도 보고한다.
+8. Energy와 Intimacy는 `null`이며, 세 축 평균이나 5축 평균을 만들지 않는다.
+9. 전체 Humor 성능과 `clear/boundary/context_insufficient`별 성능을 나누어 보고한다.
+10. 가중치를 사후 변경하면 새 버전을 만들고, 열람한 final test를 새 버전의 최종 성능 입증에 재사용하지 않는다.
+
+## 15. 모델 입력에서 발화 기능의 위치
+
+인간 평가자가 선택한 발화 기능은 인간 라벨의 일부다. 실제 서비스에서 모델이 발화 기능을 자동으로 예측한다면 다음 두 조건을 구분한다.
+
+- **End-to-end 조건:** 모델이 원문에서 발화 기능과 세 축을 모두 예측한다.
+- **Oracle-function 조건:** 인간이 정한 발화 기능을 모델에 제공한 뒤 세 축을 예측한다.
+
+Oracle-function 결과는 기능 분류가 완벽하다고 가정한 상한 분석이며, 실제 자동 성능으로 보고하지 않는다.
+
+## 16. Rubric 가중치와 제품 가중치의 구분
+
+이 문서의 가중치는 **발화에서 각 축 점수를 산출하는 측정 가중치**다. 5축 점수를 Pally의 외형·말투·애니메이션에 변환하는 CHARACTER MATRIX 가중치와는 별개다. 측정 Rubric을 변경했다고 제품 캐릭터 변환 가중치를 자동으로 바꾸지 않는다.
