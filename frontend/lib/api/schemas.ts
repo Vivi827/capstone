@@ -110,8 +110,8 @@ export const turnResponseSchema = z.object({
   warnings: z.array(warningSchema),
   quota: z.object({
     used_turns: z.number().int().nonnegative().optional(),
-    remaining_turns: z.number().int().nonnegative(),
-    daily_limit: z.number().int().positive(),
+    remaining_turns: z.number().int().nonnegative().nullable(),
+    daily_limit: z.number().int().positive().nullable(),
     exhausted: z.boolean(),
     resets_at: z.string(),
   }).optional(),
@@ -119,12 +119,12 @@ export const turnResponseSchema = z.object({
 });
 
 export const usageResponseSchema = z.object({
-  plan: z.literal("free"),
+  plan: z.enum(["free", "pro"]),
   date: z.string(),
   timezone: z.literal("Asia/Seoul"),
   used_turns: z.number().int().nonnegative(),
-  remaining_turns: z.number().int().nonnegative(),
-  daily_limit: z.number().int().positive(),
+  remaining_turns: z.number().int().nonnegative().nullable(),
+  daily_limit: z.number().int().positive().nullable(),
   reset_at: z.string(),
 });
 
@@ -142,6 +142,7 @@ export const achievementsResponseSchema = z.object({
 });
 
 export const billingProductsResponseSchema = z.object({
+  test_mode: z.boolean(),
   products: z.array(z.object({
     id: z.string(),
     name: z.string(),

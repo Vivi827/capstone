@@ -44,9 +44,10 @@ interface MockConversationRecord {
 interface MockState {
   accountDeleted: boolean;
   profile: ProfileResponse["profile"];
-  quota: UsageQuota;
+  quota: UsageQuota & { remaining_turns: number; daily_limit: number };
   records: MockConversationRecord[];
   subscriptionEntitled: boolean;
+  subscriptionWillRenew: boolean;
 }
 
 interface IdempotencyEntry {
@@ -67,6 +68,7 @@ function createInitialState(): MockState {
       turns: MOCK_TURNS.filter((turn) => turn.conversation_id === conversation.id).map(clone),
     })),
     subscriptionEntitled: false,
+    subscriptionWillRenew: false,
   };
 }
 
@@ -75,18 +77,18 @@ const MOCK_BILLING_PRODUCTS: BillingProduct[] = [
     id: "pro_monthly",
     name: "Monthly",
     interval: "month",
-    amount_minor: 999,
-    currency: "USD",
-    display_price: "$9.99",
+    amount_minor: 9900,
+    currency: "KRW",
+    display_price: "9,900원",
     trial_days: 0,
   },
   {
     id: "pro_yearly",
     name: "Yearly",
     interval: "year",
-    amount_minor: 9999,
-    currency: "USD",
-    display_price: "$99.99",
+    amount_minor: 99000,
+    currency: "KRW",
+    display_price: "99,000원",
     trial_days: 7,
   },
 ];
@@ -431,7 +433,7 @@ export const mockPallyApi: PallyApi = {
   async getBillingProducts() {
     await delay();
     ensureActiveAccount();
-    return { products: clone(MOCK_BILLING_PRODUCTS) };
+    return { test_mode: true, products: clone(MOCK_BILLING_PRODUCTS) };
   },
 
   async createCheckout(input) {
@@ -459,7 +461,7 @@ export const mockPallyApi: PallyApi = {
         entitled: mockState.subscriptionEntitled,
         product_id: mockState.subscriptionEntitled ? "pro_monthly" : null,
         current_period_end: null,
-        will_renew: mockState.subscriptionEntitled,
+        will_renew: mockState.subscriptionWillRenew,
         entitlements: mockState.subscriptionEntitled ? ["unlimited_turns"] : [],
         updated_at: null,
       },
@@ -467,6 +469,11 @@ export const mockPallyApi: PallyApi = {
   },
 
   async refreshSubscription() {
+    return this.getSubscription();
+  },
+
+  async cancelSubscription() {
+    mockState.subscriptionWillRenew = false;
     return this.getSubscription();
   },
 
