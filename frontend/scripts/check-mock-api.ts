@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     product_id: products.products[0].id,
     success_url: "https://example.com/settings/plans?checkout=success",
     cancel_url: "https://example.com/settings/plans?checkout=cancel",
-  });
+  }, initialProfile.profile.id);
   assert(checkout.checkout.product_id === products.products[0].id, "Checkout must preserve the selected product");
 
   const deletion = await mockPallyApi.deleteAccount({ confirmation: "회원탈퇴" });

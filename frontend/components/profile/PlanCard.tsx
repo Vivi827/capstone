@@ -28,12 +28,12 @@ export function PlanCard({ caption, className, name, onSelect, plan, price, sele
       role="radio"
       type="button"
     >
-      <p className={`whitespace-nowrap text-[36px] font-black leading-[44px] ${yearly ? "text-white" : "text-primary"}`}>
+      <p className={cn("whitespace-nowrap text-[28px] font-black leading-[44px] tracking-[-1px]", yearly ? "text-white" : "text-primary")}>
         {price}
       </p>
       <h2 className="whitespace-nowrap text-title-2 text-white">{name}</h2>
       <div className="h-px w-full bg-white" />
-      <p className="whitespace-nowrap text-caption-2 text-white">{caption}</p>
+      <p className="text-caption-2 text-white">{caption}</p>
     </button>
   );
 }

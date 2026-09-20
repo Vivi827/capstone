@@ -16,6 +16,7 @@ import {
   achievementsResponseSchema,
   deleteAccountResponseSchema,
   billingProductsResponseSchema,
+  billingOverviewResponseSchema,
   checkoutResponseSchema,
   conversationDetailResponseSchema,
   conversationListResponseSchema,
@@ -37,11 +38,17 @@ function createIdempotencyKey(): string {
   return crypto.randomUUID();
 }
 
-async function getAccessToken(): Promise<string> {
+type AccountBinding = { expectedUserId: string };
+
+async function getAccessToken(accountBinding?: AccountBinding): Promise<string> {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw new PallyApiError(401, "unauthorized", error.message);
-  const token = data.session?.access_token;
+  const session = data.session;
+  const token = session?.access_token;
   if (!token) throw new PallyApiError(401, "unauthorized", "로그인이 필요해요.");
+  if (accountBinding && (!accountBinding.expectedUserId || session.user.id !== accountBinding.expectedUserId)) {
+    throw new PallyApiError(401, "unauthorized", "로그인 계정이 변경됐어요. 다시 로그인해 주세요.");
+  }
   return token;
 }
 
@@ -51,12 +58,13 @@ type RequestOptions<TSchema extends z.ZodType> = {
   body?: BodyInit;
   contentType?: "application/json";
   idempotencyKey?: string;
+  accountBinding?: AccountBinding;
 };
 
 async function apiRequest<TSchema extends z.ZodType>(path: string, options: RequestOptions<TSchema>): Promise<z.infer<TSchema>> {
   if (!backendUrl) throw new PallyApiError(503, "service_unavailable", "NEXT_PUBLIC_BACKEND_URL이 설정되지 않았어요.");
 
-  const token = await getAccessToken();
+  const token = await getAccessToken(options.accountBinding);
   const headers = new Headers({ Authorization: `Bearer ${token}` });
   if (options.contentType) headers.set("Content-Type", options.contentType);
   if (options.idempotencyKey) headers.set("Idempotency-Key", options.idempotencyKey);
@@ -177,20 +185,31 @@ export const httpPallyApi: PallyApi = {
 
   getBillingProducts: () => apiRequest("/api/billing/products", { schema: billingProductsResponseSchema }),
 
-  createCheckout: (input: CheckoutInput) => apiRequest("/api/billing/checkout", {
+  getBillingOverview: () => apiRequest("/api/billing/overview", { schema: billingOverviewResponseSchema }),
+
+  createCheckout: (input: CheckoutInput, expectedUserId: string) => apiRequest("/api/billing/checkout", {
     schema: checkoutResponseSchema,
     method: "POST",
     contentType: "application/json",
     idempotencyKey: createIdempotencyKey(),
     body: JSON.stringify(input),
+    accountBinding: { expectedUserId },
   }),
 
   getSubscription: () => apiRequest("/api/subscription", { schema: subscriptionResponseSchema }),
 
-  refreshSubscription: () => apiRequest("/api/subscription/refresh", {
+  refreshSubscription: (expectedUserId: string) => apiRequest("/api/subscription/refresh", {
     schema: subscriptionResponseSchema,
     method: "POST",
     idempotencyKey: createIdempotencyKey(),
+    accountBinding: { expectedUserId },
+  }),
+
+  cancelSubscription: (expectedUserId: string) => apiRequest("/api/subscription/cancel", {
+    schema: subscriptionResponseSchema,
+    method: "POST",
+    idempotencyKey: createIdempotencyKey(),
+    accountBinding: { expectedUserId },
   }),
 
   deleteAccount: (input: DeleteAccountInput) => apiRequest("/api/account", {

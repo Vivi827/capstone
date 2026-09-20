@@ -193,21 +193,18 @@ def test_should_retry_is_conservative_for_writes():
     assert main._should_retry(ValueError("x"), is_write=False) is False
 
 
-def test_should_retry_writes_on_http2_goaway():
-    """Supabase 가 HTTP/2 GOAWAY 로 커넥션을 정리하면 httpx 가 RemoteProtocolError 를 낸다.
-    GOAWAY 규약상 그 요청은 서버가 처리하지 않았으므로 쓰기도 재시도해야 한다.
-
-    이 케이스를 쓰기에서 제외했다가 온보딩·대화 생성·업적 저장이 503 으로 실패한 적이 있다.
-    """
+def test_should_not_retry_writes_on_ambiguous_protocol_errors():
+    """A protocol error does not prove that the server skipped the mutation."""
     import httpx
 
-    assert main._should_retry(httpx.RemoteProtocolError("goaway"), is_write=True) is True
+    assert main._should_retry(httpx.RemoteProtocolError("goaway"), is_write=True) is False
     assert main._should_retry(httpx.RemoteProtocolError("goaway"), is_write=False) is True
 
 
-def test_retrying_query_retries_write_after_goaway():
-    """GOAWAY 로 첫 시도가 끊겨도 쓰기가 새 커넥션으로 재시도되어 성공해야 한다."""
+def test_retrying_query_does_not_replay_write_after_protocol_error():
+    """A lost response must not cause a second mutation."""
     import httpx
+    import pytest
 
     attempts = []
 
@@ -223,7 +220,56 @@ def test_retrying_query_retries_write_after_goaway():
 
     query = main._RetryingQuery(lambda: FlakyBuilder())
 
-    assert query.insert({"a": 1}).execute() == "SAVED"
+    with pytest.raises(httpx.RemoteProtocolError):
+        query.insert({"a": 1}).execute()
+    assert len(attempts) == 1
+
+
+def test_rpc_claims_are_never_replayed_after_lost_responses(monkeypatch):
+    import httpx
+    import pytest
+    from types import SimpleNamespace
+
+    for error_type in (httpx.ReadTimeout, httpx.RemoteProtocolError):
+        for params in (None, {"p_order_id": "test-order"}):
+            attempts = []
+
+            class CommittedClaim:
+                def execute(self):
+                    attempts.append(1)
+                    if len(attempts) == 1:
+                        raise error_type("Claim committed, response lost")
+                    return SimpleNamespace(data=False)
+
+            class Client:
+                def rpc(self, *args):
+                    return CommittedClaim()
+
+            monkeypatch.setattr(main, "_get_supabase_raw", lambda: Client())
+            with pytest.raises(error_type):
+                main._RetryingSupabase().rpc("billing_claim_approval", params).execute()
+            assert len(attempts) == 1
+
+
+def test_rpc_retries_only_connection_establishment_failures(monkeypatch):
+    import httpx
+
+    attempts = []
+
+    class Claim:
+        def execute(self):
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise httpx.ConnectTimeout("Not sent")
+            return "CLAIMED"
+
+    class Client:
+        def rpc(self, *args):
+            return Claim()
+
+    monkeypatch.setattr(main, "_get_supabase_raw", lambda: Client())
+    monkeypatch.setattr(main, "_reset_supabase_client", lambda: None)
+    assert main._RetryingSupabase().rpc("billing_claim_approval", {}).execute() == "CLAIMED"
     assert len(attempts) == 2
 
 

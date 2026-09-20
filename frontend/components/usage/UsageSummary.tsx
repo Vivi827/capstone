@@ -22,7 +22,7 @@ function resetLabel(resetAt: string): string {
 export function UsageSummary({ subscription, usage }: UsageSummaryProps) {
   const [expanded, setExpanded] = useState(false);
 
-  if (subscription?.entitled) {
+  if (usage ? usage.plan === "pro" : subscription?.entitled) {
     return (
       <div className="rounded-full bg-primary px-3 py-1.5 text-caption-1 text-white">
         Pro · 무제한

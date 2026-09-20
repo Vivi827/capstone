@@ -50,6 +50,7 @@ CLI와 MCP의 접근 범위는 로그인한 계정·토큰의 권한에 따라 �
 | Supabase project | `jxmdtrydtjlzglqwcofs` |
 | GitHub repo | `puter8/capstone` |
 | GCP project | `capstone-puter8` |
+| KakaoPay test application | `Pally` / `A71A327B1FDF08B4FFBF` (sandbox recurring CID `TCSUBSCRIP`) |
 | Vercel workspace / project | 기존 기록: `hunheay123s-projects` / `yourpally` → `https://capstone-eight-virid.vercel.app` (**현재 팀 접근 재확인 필요**, §8) |
 | Railway workspace | `김민주's Projects` (`6d007f5d-ab0a-4c91-871f-357fe3681d8d`) |
 | Railway project | `powerful-laughter` (`f9d8024f-96aa-4f83-b052-ed7c7fc1da4a`) |
