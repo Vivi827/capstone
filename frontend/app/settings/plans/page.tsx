@@ -106,7 +106,7 @@ export default function PlansPage() {
       });
       const checkoutUrl = new URL(response.checkout.checkout_url);
       if (checkoutUrl.hostname.endsWith(".local")) {
-        setNotice("결제 연결을 준비 중이에요. 잠시 후 다시 시도해 주세요.");
+        setNotice("현재 결제 기능이 연결되지 않아 결제창을 열 수 없어요. 카카오페이 테스트 결제 연동이 필요해요.");
         return;
       }
       window.location.assign(checkoutUrl.toString());
