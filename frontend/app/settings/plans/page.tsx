@@ -18,7 +18,7 @@ import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type BillingData = { products: BillingProduct[]; overview: BillingOverviewResponse };
-type Dialog = { kind: "checkout" } | { kind: "cancel" } | { kind: "history"; entry: BillingHistoryEntry } | null;
+type Dialog = { kind: "checkout" } | { kind: "cancel" } | { kind: "cancel-complete" } | { kind: "history"; entry: BillingHistoryEntry } | null;
 
 export default function PlansPage() {
   const router = useRouter();
@@ -38,6 +38,7 @@ export default function PlansPage() {
   const authInvalidated = useRef(false);
   const departingForCheckout = useRef(false);
   const dialogOpener = useRef<HTMLElement | null>(null);
+  const subscriptionTitle = useRef<HTMLHeadingElement>(null);
 
   const clearBillingSession = useCallback(() => {
     authGeneration.current += 1;
@@ -120,9 +121,7 @@ export default function PlansPage() {
     void loadData(checkout === "success" || checkout === "pending")
       .then((next) => {
         if (!active || !next || !isCurrentSession(generation)) return;
-        if (checkout === "success" && hasBillingAccess(next.overview.subscription)) {
-          setNotice("Pally Pro를 이용할 수 있어요.");
-        } else if (checkout === "cancel") {
+        if (checkout === "cancel") {
           setNotice("결제창을 닫았어요. 아래에서 현재 결제 상태를 확인해 주세요.");
         }
         if (["success", "pending", "cancel"].includes(checkout ?? "")) {
@@ -169,7 +168,7 @@ export default function PlansPage() {
     return () => window.clearTimeout(timer);
   }, [data, refresh]);
 
-  const closeDialog = () => { if (!locked.current) { setDialog(null); setDialogError(null); } };
+  const closeDialog = () => { if (!locked.current || dialog?.kind === "cancel-complete") { setDialog(null); setDialogError(null); } };
   const selected = data?.products.find((product) => product.id === selectedId);
   const overview = data?.overview;
   const subscription = overview?.subscription;
@@ -245,8 +244,8 @@ export default function PlansPage() {
         invalidateUsage(userIdRef.current);
       }
       setData((current) => current ? { ...current, overview: { ...current.overview, subscription: response.subscription } } : null);
-      setDialog(null);
-      setNotice("자동갱신을 해지했어요. 남은 이용 기간은 그대로 유지돼요.");
+      setNotice(null);
+      setDialog({ kind: "cancel-complete" });
       try { await loadData(); }
       catch (caught) { if (isCurrentSession(generation)) handleError(caught); }
     } catch (caught) { if (isCurrentSession(generation)) handleError(caught, true); }
@@ -295,7 +294,7 @@ export default function PlansPage() {
                 {subscription.will_renew ? (subscription.status === "trialing" ? "무료체험 중" : "이용 중") : "자동갱신 꺼짐"}
               </span>
             </div>
-            <h1 className="mt-4 text-[27px] font-semibold tracking-[-1px]" id="subscription-title">Pally Pro</h1>
+            <h1 className="mt-4 text-[27px] font-semibold tracking-[-1px]" id="subscription-title" ref={subscriptionTitle} tabIndex={-1}>Pally Pro</h1>
             <p className="mt-2 text-[13px] leading-6 text-[#656b74]">{subscription.will_renew ? "Pally와 더 자유롭게 대화해 보세요." : "남은 기간 동안 Pro를 그대로 이용하세요."}</p>
             <div className="mt-8 border-b border-[#eceef1] pb-7">
               <p className="text-[12px] text-[#656b74]">{subscription.will_renew ? (subscription.status === "trialing" ? "첫 결제일" : "다음 결제일") : "이용 종료일"}</p>
@@ -359,7 +358,9 @@ export default function PlansPage() {
         </> : null}
       </div>
 
-      {dialog ? <BillingDialog busy={busy} onClose={closeDialog} returnFocus={dialogOpener.current} title={dialog.kind === "checkout" ? "구독 시작하기" : dialog.kind === "cancel" ? "자동갱신을 해지할까요?" : "결제 상세"}>
+      {dialog ? <BillingDialog busy={busy && dialog.kind !== "cancel-complete"} key={dialog.kind} onClose={closeDialog}
+        returnFocus={dialog.kind === "cancel-complete" ? subscriptionTitle.current : dialogOpener.current}
+        title={dialog.kind === "checkout" ? "구독 시작하기" : dialog.kind === "cancel" ? "자동갱신을 해지할까요?" : dialog.kind === "cancel-complete" ? "자동갱신을 해지했어요" : "결제 상세"}>
         {dialog.kind === "checkout" && selected ? <>
           <p className="text-[13px] text-[#656b74]">Pally Pro · {planName(selected.id)}</p>
           <div className="mb-4 mt-6 flex items-end justify-between border-b border-[#eceef1] pb-6"><span className="text-[13px] text-[#656b74]">오늘 결제할 금액</span><strong className="text-[28px] font-semibold tracking-[-1px]">{formatWon(firstCharge(selected))}</strong></div>
@@ -378,6 +379,10 @@ export default function PlansPage() {
           {dialogError ? <p className="mb-4 text-[13px] leading-6 text-[#a83232]" role="alert">{dialogError}</p> : null}
           <BillingButton disabled={busy} onClick={() => { void stopRenewal(); }}>{busy ? "해지 중…" : "자동갱신 해지하기"}</BillingButton>
           <BillingButton className="mt-2" disabled={busy} onClick={closeDialog} secondary>계속 이용하기</BillingButton>
+        </> : null}
+        {dialog.kind === "cancel-complete" ? <>
+          <p className="mb-7 text-[13px] leading-[1.9] text-[#656b74]">남은 이용 기간은 그대로 유지돼요.</p>
+          <BillingButton onClick={closeDialog}>확인</BillingButton>
         </> : null}
         {dialog.kind === "history" ? <>
           <p className="text-[13px] text-[#656b74]">{historyLabel(dialog.entry)} · {planName(dialog.entry.product_id)}</p>
