@@ -26,7 +26,32 @@ jobs:
       - name: Byte-compile (syntax check)
         run: python -m compileall -q backend ai
 
-      - name: Backend smoke and speech regression tests
+      - name: Backend billing, smoke, and speech regression tests
         env:
           PYTHONPATH: backend
-        run: pytest -q backend/test_smoke.py backend/test_tts.py tests/test_generate_feedback.py tests/test_ai_reply_shaping.py
+        run: pytest -q backend/test_billing.py backend/test_billing_overview.py backend/test_smoke.py backend/test_tts.py tests/test_generate_feedback.py tests/test_ai_reply_shaping.py
+
+  frontend-billing:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Billing contracts and account-isolation regression tests
+        run: |
+          npx --no-install tsx scripts/check-billing-contract.ts
+          npx --no-install tsx scripts/check-billing-view.ts
+          npx --no-install tsx scripts/check-billing-account-binding.ts
+          npm run check:mock-api
+          npm run check:query-cache

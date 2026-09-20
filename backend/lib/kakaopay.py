@@ -70,7 +70,8 @@ def _request(endpoint: str, payload: dict, schema: type[BaseModel]):
     if not key:
         raise KakaoPayError("카카오페이 테스트 결제 설정이 필요해요.")
     try:
-        # Do not retry payment mutations: reconcile an uncertain approval via order().
+        # Never retry payment mutations. Order lookup cannot restore a lost SID;
+        # results without a durable receipt may require manual reconciliation.
         response = httpx.post(
             f"{API_ORIGIN}/online/v1/payment/{endpoint}",
             headers={"Authorization": f"SECRET_KEY {key}"},

@@ -182,6 +182,42 @@ export interface SubscriptionResponse {
   subscription: Subscription;
 }
 
+export type BillingProductId = "pro_monthly" | "pro_yearly";
+
+interface BillingOrderSummary {
+  id: string;
+  product_id: BillingProductId;
+  amount: number;
+  currency: "KRW";
+  kind: "initial" | "renewal";
+  trial_days: 0 | 7;
+  created_at: string;
+}
+
+export interface BillingHistoryEntry extends BillingOrderSummary {
+  status: "approved";
+  approved_at: string;
+}
+
+export interface PendingBillingOrder extends BillingOrderSummary {
+  status: "preparing" | "ready" | "processing" | "uncertain";
+  expires_at: string;
+}
+
+export type BillingCheckoutBlockedReason =
+  | "subscription_active"
+  | "payment_pending"
+  | "renewal_active"
+  | "deactivation_pending";
+
+export interface BillingOverviewResponse {
+  subscription: Subscription;
+  history: BillingHistoryEntry[];
+  history_has_more: boolean;
+  pending_order: PendingBillingOrder | null;
+  checkout_blocked_reason: BillingCheckoutBlockedReason | null;
+}
+
 export interface DeleteAccountInput {
   confirmation: "회원탈퇴";
 }
@@ -263,10 +299,11 @@ export interface PallyApi {
   recordActivityEvent(input: ActivityEventInput): Promise<void>;
   getAchievements(): Promise<AchievementsResponse>;
   getBillingProducts(): Promise<BillingProductsResponse>;
-  createCheckout(input: CheckoutInput): Promise<CheckoutResponse>;
+  getBillingOverview(): Promise<BillingOverviewResponse>;
+  createCheckout(input: CheckoutInput, expectedUserId: string): Promise<CheckoutResponse>;
   getSubscription(): Promise<SubscriptionResponse>;
-  refreshSubscription(): Promise<SubscriptionResponse>;
-  cancelSubscription(): Promise<SubscriptionResponse>;
+  refreshSubscription(expectedUserId: string): Promise<SubscriptionResponse>;
+  cancelSubscription(expectedUserId: string): Promise<SubscriptionResponse>;
   deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResponse>;
 }
 

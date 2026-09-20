@@ -6,7 +6,11 @@ import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Callable, Literal
 from urllib.parse import urlencode
+from uuid import UUID
+
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, TypeAdapter
 
 from lib import kakaopay
 
@@ -52,6 +56,101 @@ def entitled(row: dict | None) -> bool:
     return bool(row and row.get("entitled") and row.get("status") in ("active", "trialing")
                 and row.get("current_period_end")
                 and timestamp(row["current_period_end"]) > datetime.now(timezone.utc))
+
+
+class SubscriptionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    plan: Literal["free", "pro"]
+    status: Literal["none", "trialing", "active", "grace_period", "canceled", "expired", "revoked"]
+    entitled: bool
+    product_id: Literal["pro_monthly", "pro_yearly"] | None
+    current_period_end: AwareDatetime | None
+    will_renew: bool
+    entitlements: list[Literal["unlimited_turns"]]
+    updated_at: AwareDatetime | None
+
+
+class BillingOrderSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID
+    product_id: Literal["pro_monthly", "pro_yearly"]
+    amount: int = Field(ge=0, strict=True)
+    currency: Literal["KRW"] = "KRW"
+    kind: Literal["initial", "renewal"]
+    trial_days: Literal[0, 7]
+    created_at: AwareDatetime
+
+
+class BillingHistoryEntry(BillingOrderSummary):
+    status: Literal["approved"]
+    approved_at: AwareDatetime
+
+
+class PendingBillingOrder(BillingOrderSummary):
+    status: Literal["preparing", "ready", "processing", "uncertain"]
+    expires_at: AwareDatetime
+
+
+class BillingAccountFlags(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    renewal_enabled: bool
+    deactivation_pending: bool
+
+
+class BillingOverviewResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    subscription: SubscriptionResponse
+    history: list[BillingHistoryEntry]
+    history_has_more: bool
+    pending_order: PendingBillingOrder | None
+    checkout_blocked_reason: Literal[
+        "subscription_active", "payment_pending", "renewal_active", "deactivation_pending"
+    ] | None
+
+
+def overview(sb, user_id: str, subscription: dict) -> BillingOverviewResponse:
+    """Read only caller-owned billing data; never reconcile or issue charges."""
+    summary_fields = "id,product_id,amount,kind,trial_days,status,created_at"
+    history_rows = execute(
+        sb.table("billing_orders").select(f"{summary_fields},approved_at")
+        .eq("user_id", user_id).eq("status", "approved")
+        .order("created_at", desc=True).order("id", desc=True).limit(51)
+    )
+    history = TypeAdapter(list[BillingHistoryEntry]).validate_python(history_rows)
+    now = datetime.now(timezone.utc).isoformat()
+    pending_rows = execute(
+        sb.table("billing_orders").select(f"{summary_fields},expires_at")
+        .eq("user_id", user_id)
+        .or_(f"status.in.(processing,uncertain),and(status.in.(preparing,ready),expires_at.gt.{now})")
+        .order("created_at", desc=True).order("id", desc=True).limit(1)
+    )
+    pending = TypeAdapter(list[PendingBillingOrder]).validate_python(pending_rows)
+    account_rows = execute(
+        sb.table("billing_accounts").select("renewal_enabled,deactivation_pending")
+        .eq("user_id", user_id).limit(1)
+    )
+    accounts = TypeAdapter(list[BillingAccountFlags]).validate_python(account_rows)
+    current = SubscriptionResponse.model_validate(subscription)
+    blocked = None
+    if pending:
+        blocked = "payment_pending"
+    elif current.entitled:
+        blocked = "subscription_active"
+    elif accounts and accounts[0].deactivation_pending:
+        blocked = "deactivation_pending"
+    elif accounts and accounts[0].renewal_enabled:
+        blocked = "renewal_active"
+    return BillingOverviewResponse(
+        subscription=current,
+        history=history[:50],
+        history_has_more=len(history) > 50,
+        pending_order=pending[0] if pending else None,
+        checkout_blocked_reason=blocked,
+    )
 
 
 def return_url(value: str, outcome: str) -> str:
@@ -152,32 +251,44 @@ def cancel_subscription(sb, user_id: str) -> None:
         execute(sb.table("billing_accounts").update({"deactivation_pending": False}).eq("user_id", user_id).eq("sid", sid))
 
 
-def recover_receipts(sb, user_id: str | None = None) -> None:
+def recover_receipts(sb, user_id: str | None = None,
+                     should_stop: Callable[[], bool] | None = None) -> None:
     # Complete durable receipts after a process restart without sending the charge again.
+    if should_stop is not None and should_stop():
+        return
     query = sb.table("billing_orders").select("*").in_("status", ["processing", "uncertain"]).not_.is_("receipt", "null")
     if user_id:
         query = query.eq("user_id", user_id)
     recovery = execute(query.limit(20))
     for saved in recovery:
+        if should_stop is not None and should_stop():
+            return
         try:
             finish(sb, saved, kakaopay.ApprovedResponse.model_validate(saved["receipt"]))
         except Exception as exc:
             logging.error("Billing receipt recovery failed; order=%s (%s)", saved["id"], type(exc).__name__)
 
 
-def tick(sb) -> None:
-    recover_receipts(sb)
+def tick(sb, should_stop: Callable[[], bool] | None = None) -> None:
+    recover_receipts(sb, should_stop=should_stop)
+    if should_stop is not None and should_stop():
+        return
     pending = execute(sb.table("billing_accounts").select("user_id,sid").eq("deactivation_pending", True).limit(20))
     for account in pending:
+        if should_stop is not None and should_stop():
+            return
         try:
             kakaopay.deactivate(account["sid"])
             execute(sb.table("billing_accounts").update({"deactivation_pending": False}).eq("user_id", account["user_id"]).eq("sid", account["sid"]))
         except Exception as exc:
             logging.error("Billing deactivation retry failed (%s)", type(exc).__name__)
     for _ in range(20):
+        if should_stop is not None and should_stop():
+            return
         saved = execute(sb.rpc("billing_claim_renewal", {}))
         if saved is None:
             break
+        # Drain an already-claimed payment before stopping; never abandon it mid-flight.
         try:
             receipt = kakaopay.renew({
                 "sid": saved["sid"], "partner_user_id": saved["partner_user_id"],
@@ -197,7 +308,7 @@ def tick(sb) -> None:
 async def worker(get_db, stop: asyncio.Event) -> None:
     while not stop.is_set():
         try:
-            await asyncio.to_thread(tick, get_db())
+            await asyncio.to_thread(tick, get_db(), should_stop=stop.is_set)
         except Exception as exc:
             logging.error("Billing worker failed (%s)", type(exc).__name__)
         try:

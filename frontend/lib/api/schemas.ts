@@ -175,6 +175,39 @@ export const subscriptionResponseSchema = z.object({
   }),
 });
 
+const billingOrderSummarySchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.enum(["pro_monthly", "pro_yearly"]),
+  amount: z.number().int().nonnegative(),
+  currency: z.literal("KRW"),
+  kind: z.enum(["initial", "renewal"]),
+  trial_days: z.union([z.literal(0), z.literal(7)]),
+  created_at: z.iso.datetime({ offset: true }),
+});
+
+export const billingHistoryEntrySchema = billingOrderSummarySchema.extend({
+  status: z.literal("approved"),
+  approved_at: z.iso.datetime({ offset: true }),
+});
+
+export const pendingBillingOrderSchema = billingOrderSummarySchema.extend({
+  status: z.enum(["preparing", "ready", "processing", "uncertain"]),
+  expires_at: z.iso.datetime({ offset: true }),
+});
+
+export const billingOverviewResponseSchema = z.object({
+  subscription: subscriptionResponseSchema.shape.subscription,
+  history: z.array(billingHistoryEntrySchema),
+  history_has_more: z.boolean(),
+  pending_order: pendingBillingOrderSchema.nullable(),
+  checkout_blocked_reason: z.enum([
+    "subscription_active",
+    "payment_pending",
+    "renewal_active",
+    "deactivation_pending",
+  ]).nullable(),
+});
+
 export const deleteAccountResponseSchema = z.object({
   status: z.literal("deleted"),
 });

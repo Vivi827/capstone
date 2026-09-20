@@ -235,10 +235,9 @@ def _reset_supabase_client() -> None:
 # ReadTimeout 등은 서버가 이미 처리했을 수 있어 재시도하면 중복 실행 위험이 있다.
 _WRITE_OPS = {"insert", "update", "upsert", "delete"}
 
-# Supabase 가 HTTP/2 GOAWAY(ConnectionTerminated)로 커넥션을 주기적으로 정리한다.
-# httpx 는 이를 RemoteProtocolError 로 올리는데, GOAWAY 규약상 last_stream_id 이후의
-# 요청은 서버가 처리하지 않았음이 보장되므로 쓰기라도 재시도해도 중복되지 않는다.
-_WRITE_SAFE_RETRY = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError)
+# A protocol error can occur after a transaction commits but before its response
+# arrives. Only connection-establishment failures are safe to replay for writes.
+_WRITE_SAFE_RETRY = (httpx.ConnectError, httpx.ConnectTimeout)
 
 
 def _should_retry(exc: BaseException, is_write: bool) -> bool:
@@ -268,9 +267,10 @@ class _RetryingQuery:
     """PostgREST 쿼리 빌더 프록시. 체이닝을 기록해 두었다가 execute() 에서 실행하고,
     죽은 커넥션 때문에 실패하면 클라이언트를 폐기한 뒤 새 커넥션으로 1회 재시도한다."""
 
-    def __init__(self, build):
+    def __init__(self, build, *, is_write=False):
         self._build = build   # () -> 새 클라이언트에서 시작하는 빌더
         self._ops = []        # ("call"|"attr", name, args, kwargs)
+        self._is_write = is_write
 
     def __getattr__(self, name):
         return _QueryStep(self, name)
@@ -285,7 +285,7 @@ class _RetryingQuery:
         try:
             return self._run()
         except Exception as e:
-            is_write = any(name in _WRITE_OPS for _, name, _, _ in self._ops)
+            is_write = self._is_write or any(name in _WRITE_OPS for _, name, _, _ in self._ops)
             if not _should_retry(e, is_write):
                 raise
             logging.warning(f"DB transport error, retrying with fresh client: {e}")
@@ -301,9 +301,10 @@ class _RetryingSupabase:
         return _RetryingQuery(lambda: _get_supabase_raw().table(name))
 
     def rpc(self, fn_name, params=None):
+        # RPC bodies can mutate state even without a chained insert/update call.
         if params is None:
-            return _RetryingQuery(lambda: _get_supabase_raw().rpc(fn_name))
-        return _RetryingQuery(lambda: _get_supabase_raw().rpc(fn_name, params))
+            return _RetryingQuery(lambda: _get_supabase_raw().rpc(fn_name), is_write=True)
+        return _RetryingQuery(lambda: _get_supabase_raw().rpc(fn_name, params), is_write=True)
 
     def __getattr__(self, name):
         return getattr(_get_supabase_raw(), name)
@@ -2541,6 +2542,14 @@ def billing_callback(order_id: uuid.UUID, state: str = Query(min_length=32, max_
 @app.get("/api/subscription")
 def get_subscription(user_id: str = Depends(get_current_user_id)):
     return {"subscription": _subscription_to_response(_read_subscription(get_supabase(), user_id))}
+
+
+@app.get("/api/billing/overview", response_model=billing.BillingOverviewResponse)
+def billing_overview(response: Response, user_id: str = Depends(get_current_user_id)):
+    response.headers["Cache-Control"] = "no-store"
+    sb = get_supabase()
+    subscription = _subscription_to_response(_read_subscription(sb, user_id))
+    return billing.overview(sb, user_id, subscription)
 
 
 @app.post("/api/subscription/refresh")

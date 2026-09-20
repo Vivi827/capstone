@@ -113,6 +113,13 @@ function ensureActiveAccount(): void {
   }
 }
 
+function ensureBillingAccount(expectedUserId: string): void {
+  ensureActiveAccount();
+  if (expectedUserId !== mockState.profile.id) {
+    throw new PallyApiError(401, "unauthorized", "로그인 계정이 변경됐어요. 다시 로그인해 주세요.");
+  }
+}
+
 function getRecord(conversationId: string): MockConversationRecord {
   const record = mockState.records.find((item) => item.conversation.id === conversationId);
   if (!record) {
@@ -436,9 +443,22 @@ export const mockPallyApi: PallyApi = {
     return { test_mode: true, products: clone(MOCK_BILLING_PRODUCTS) };
   },
 
-  async createCheckout(input) {
+  async getBillingOverview() {
+    const { subscription } = await this.getSubscription();
+    return {
+      subscription,
+      history: [],
+      history_has_more: false,
+      pending_order: null,
+      checkout_blocked_reason: subscription.entitled
+        ? "subscription_active"
+        : subscription.will_renew ? "renewal_active" : null,
+    };
+  },
+
+  async createCheckout(input, expectedUserId) {
     await delay();
-    ensureActiveAccount();
+    ensureBillingAccount(expectedUserId);
     if (!MOCK_BILLING_PRODUCTS.some((product) => product.id === input.product_id)) {
       throw new PallyApiError(422, "invalid_product", "선택한 요금제를 찾을 수 없어요.");
     }
@@ -468,11 +488,13 @@ export const mockPallyApi: PallyApi = {
     };
   },
 
-  async refreshSubscription() {
+  async refreshSubscription(expectedUserId) {
+    ensureBillingAccount(expectedUserId);
     return this.getSubscription();
   },
 
-  async cancelSubscription() {
+  async cancelSubscription(expectedUserId) {
+    ensureBillingAccount(expectedUserId);
     mockState.subscriptionWillRenew = false;
     return this.getSubscription();
   },
