@@ -289,10 +289,10 @@ export default function HomePage() {
         }
         if (quota) {
           setUsage((current) => ({
-            plan: "free",
+            plan: quota.daily_limit === null ? "pro" : "free",
             date: current?.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date()),
             timezone: "Asia/Seoul",
-            used_turns: quota.used_turns ?? quota.daily_limit - quota.remaining_turns,
+            used_turns: quota.used_turns ?? (quota.daily_limit !== null && quota.remaining_turns !== null ? quota.daily_limit - quota.remaining_turns : 0),
             remaining_turns: quota.remaining_turns,
             daily_limit: quota.daily_limit,
             reset_at: quota.resets_at,

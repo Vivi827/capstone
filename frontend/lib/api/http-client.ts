@@ -193,6 +193,12 @@ export const httpPallyApi: PallyApi = {
     idempotencyKey: createIdempotencyKey(),
   }),
 
+  cancelSubscription: () => apiRequest("/api/subscription/cancel", {
+    schema: subscriptionResponseSchema,
+    method: "POST",
+    idempotencyKey: createIdempotencyKey(),
+  }),
+
   deleteAccount: (input: DeleteAccountInput) => apiRequest("/api/account", {
     schema: deleteAccountResponseSchema,
     method: "DELETE",

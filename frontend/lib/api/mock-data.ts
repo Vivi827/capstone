@@ -19,12 +19,12 @@ export const MOCK_PROFILE: UserProfile = {
   updated_at: "2026-08-01T09:00:00Z",
 };
 
-export const MOCK_QUOTA: UsageQuota = {
+export const MOCK_QUOTA = {
   remaining_turns: 5,
   daily_limit: 5,
   exhausted: false,
   resets_at: "2026-08-01T15:00:00Z",
-};
+} satisfies UsageQuota;
 
 export const MOCK_CONVERSATIONS: Conversation[] = [
   {

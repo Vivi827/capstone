@@ -71,8 +71,8 @@ export interface ConversationTurn {
 
 export interface UsageQuota {
   used_turns?: number;
-  remaining_turns: number;
-  daily_limit: number;
+  remaining_turns: number | null;
+  daily_limit: number | null;
   exhausted: boolean;
   resets_at: string;
 }
@@ -126,12 +126,12 @@ export interface TurnResponse {
 }
 
 export interface UsageResponse {
-  plan: "free";
+  plan: "free" | "pro";
   date: string;
   timezone: "Asia/Seoul";
   used_turns: number;
-  remaining_turns: number;
-  daily_limit: number;
+  remaining_turns: number | null;
+  daily_limit: number | null;
   reset_at: string;
 }
 
@@ -149,12 +149,14 @@ export interface BillingProduct {
 
 export interface BillingProductsResponse {
   products: BillingProduct[];
+  test_mode: boolean;
 }
 
 export interface CheckoutInput {
   product_id: string;
   success_url: string;
   cancel_url: string;
+  mobile?: boolean;
 }
 
 export interface CheckoutResponse {
@@ -264,6 +266,7 @@ export interface PallyApi {
   createCheckout(input: CheckoutInput): Promise<CheckoutResponse>;
   getSubscription(): Promise<SubscriptionResponse>;
   refreshSubscription(): Promise<SubscriptionResponse>;
+  cancelSubscription(): Promise<SubscriptionResponse>;
   deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResponse>;
 }
 
