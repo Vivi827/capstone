@@ -44,9 +44,10 @@ interface MockConversationRecord {
 interface MockState {
   accountDeleted: boolean;
   profile: ProfileResponse["profile"];
-  quota: UsageQuota;
+  quota: UsageQuota & { remaining_turns: number; daily_limit: number };
   records: MockConversationRecord[];
   subscriptionEntitled: boolean;
+  subscriptionWillRenew: boolean;
 }
 
 interface IdempotencyEntry {
@@ -67,6 +68,7 @@ function createInitialState(): MockState {
       turns: MOCK_TURNS.filter((turn) => turn.conversation_id === conversation.id).map(clone),
     })),
     subscriptionEntitled: false,
+    subscriptionWillRenew: false,
   };
 }
 
@@ -75,18 +77,18 @@ const MOCK_BILLING_PRODUCTS: BillingProduct[] = [
     id: "pro_monthly",
     name: "Monthly",
     interval: "month",
-    amount_minor: 999,
-    currency: "USD",
-    display_price: "$9.99",
+    amount_minor: 9900,
+    currency: "KRW",
+    display_price: "9,900원",
     trial_days: 0,
   },
   {
     id: "pro_yearly",
     name: "Yearly",
     interval: "year",
-    amount_minor: 9999,
-    currency: "USD",
-    display_price: "$99.99",
+    amount_minor: 99000,
+    currency: "KRW",
+    display_price: "99,000원",
     trial_days: 7,
   },
 ];
@@ -108,6 +110,13 @@ function createUuid(): string {
 function ensureActiveAccount(): void {
   if (mockState.accountDeleted) {
     throw new PallyApiError(401, "unauthorized", "삭제된 mock 계정이에요. 로그인 화면에서 다시 시작해 주세요.");
+  }
+}
+
+function ensureBillingAccount(expectedUserId: string): void {
+  ensureActiveAccount();
+  if (expectedUserId !== mockState.profile.id) {
+    throw new PallyApiError(401, "unauthorized", "로그인 계정이 변경됐어요. 다시 로그인해 주세요.");
   }
 }
 
@@ -431,12 +440,25 @@ export const mockPallyApi: PallyApi = {
   async getBillingProducts() {
     await delay();
     ensureActiveAccount();
-    return { products: clone(MOCK_BILLING_PRODUCTS) };
+    return { test_mode: true, products: clone(MOCK_BILLING_PRODUCTS) };
   },
 
-  async createCheckout(input) {
+  async getBillingOverview() {
+    const { subscription } = await this.getSubscription();
+    return {
+      subscription,
+      history: [],
+      history_has_more: false,
+      pending_order: null,
+      checkout_blocked_reason: subscription.entitled
+        ? "subscription_active"
+        : subscription.will_renew ? "renewal_active" : null,
+    };
+  },
+
+  async createCheckout(input, expectedUserId) {
     await delay();
-    ensureActiveAccount();
+    ensureBillingAccount(expectedUserId);
     if (!MOCK_BILLING_PRODUCTS.some((product) => product.id === input.product_id)) {
       throw new PallyApiError(422, "invalid_product", "선택한 요금제를 찾을 수 없어요.");
     }
@@ -459,14 +481,21 @@ export const mockPallyApi: PallyApi = {
         entitled: mockState.subscriptionEntitled,
         product_id: mockState.subscriptionEntitled ? "pro_monthly" : null,
         current_period_end: null,
-        will_renew: mockState.subscriptionEntitled,
+        will_renew: mockState.subscriptionWillRenew,
         entitlements: mockState.subscriptionEntitled ? ["unlimited_turns"] : [],
         updated_at: null,
       },
     };
   },
 
-  async refreshSubscription() {
+  async refreshSubscription(expectedUserId) {
+    ensureBillingAccount(expectedUserId);
+    return this.getSubscription();
+  },
+
+  async cancelSubscription(expectedUserId) {
+    ensureBillingAccount(expectedUserId);
+    mockState.subscriptionWillRenew = false;
     return this.getSubscription();
   },
 

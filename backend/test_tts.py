@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 from fastapi import UploadFile
 from starlette.requests import Request
@@ -68,6 +69,45 @@ def test_journey_configuration_rollback_and_explicit_override(monkeypatch):
     assert voices == ["en-US-Journey-F", "en-US-Chirp3-HD-Leda"]
 
 
+@pytest.mark.parametrize("worker_fails", [False, True])
+def test_billing_worker_and_http_pool_share_lifecycle(monkeypatch, worker_fails):
+    clients = _install_transport(monkeypatch, lambda _: httpx.Response(200))
+    monkeypatch.setenv("BILLING_PROVIDER", "kakaopay")
+    monkeypatch.setenv("BILLING_WORKER_ENABLED", "true")
+
+    async def scenario():
+        started, stopped = asyncio.Event(), asyncio.Event()
+
+        async def worker(get_db, stop):
+            assert get_db is main.get_supabase
+            assert main.app.state.http_client is clients[0]
+            assert not clients[0].is_closed
+            started.set()
+            await stop.wait()
+            assert not clients[0].is_closed
+            stopped.set()
+            if worker_fails:
+                raise RuntimeError("test worker shutdown failure")
+
+        monkeypatch.setattr(main.billing, "worker", worker)
+
+        async def run_app():
+            async with main.app.router.lifespan_context(main.app):
+                await asyncio.wait_for(started.wait(), timeout=2)
+                assert not stopped.is_set()
+
+        if worker_fails:
+            with pytest.raises(RuntimeError, match="test worker shutdown failure"):
+                await run_app()
+        else:
+            await run_app()
+        assert stopped.is_set()
+        assert clients[0].is_closed
+        assert main.app.state.http_client is None
+
+    asyncio.run(scenario())
+
+
 def test_provider_failure_does_not_break_next_synthesis(monkeypatch):
     calls = []
 
@@ -105,6 +145,7 @@ def test_turn_waits_for_feedback_and_saves_the_same_card_for_history(monkeypatch
     sb = Mock()
     sb.table.side_effect = lambda name: {"sessions": sessions, "messages": messages}[name]
     monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_read_subscription", lambda *_: None)
     monkeypatch.setattr(main, "_reserve_turn", lambda *_: 1)
     monkeypatch.setattr(main, "GOOGLE_AI_API_KEY", "test-key")
     monkeypatch.setattr(main, "DEFAULT_TTS_VOICE", "en-US-Chirp3-HD-Leda")

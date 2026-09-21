@@ -71,8 +71,8 @@ export interface ConversationTurn {
 
 export interface UsageQuota {
   used_turns?: number;
-  remaining_turns: number;
-  daily_limit: number;
+  remaining_turns: number | null;
+  daily_limit: number | null;
   exhausted: boolean;
   resets_at: string;
 }
@@ -126,12 +126,12 @@ export interface TurnResponse {
 }
 
 export interface UsageResponse {
-  plan: "free";
+  plan: "free" | "pro";
   date: string;
   timezone: "Asia/Seoul";
   used_turns: number;
-  remaining_turns: number;
-  daily_limit: number;
+  remaining_turns: number | null;
+  daily_limit: number | null;
   reset_at: string;
 }
 
@@ -149,12 +149,14 @@ export interface BillingProduct {
 
 export interface BillingProductsResponse {
   products: BillingProduct[];
+  test_mode: boolean;
 }
 
 export interface CheckoutInput {
   product_id: string;
   success_url: string;
   cancel_url: string;
+  mobile?: boolean;
 }
 
 export interface CheckoutResponse {
@@ -178,6 +180,42 @@ export interface Subscription {
 
 export interface SubscriptionResponse {
   subscription: Subscription;
+}
+
+export type BillingProductId = "pro_monthly" | "pro_yearly";
+
+interface BillingOrderSummary {
+  id: string;
+  product_id: BillingProductId;
+  amount: number;
+  currency: "KRW";
+  kind: "initial" | "renewal";
+  trial_days: 0 | 7;
+  created_at: string;
+}
+
+export interface BillingHistoryEntry extends BillingOrderSummary {
+  status: "approved";
+  approved_at: string;
+}
+
+export interface PendingBillingOrder extends BillingOrderSummary {
+  status: "preparing" | "ready" | "processing" | "uncertain";
+  expires_at: string;
+}
+
+export type BillingCheckoutBlockedReason =
+  | "subscription_active"
+  | "payment_pending"
+  | "renewal_active"
+  | "deactivation_pending";
+
+export interface BillingOverviewResponse {
+  subscription: Subscription;
+  history: BillingHistoryEntry[];
+  history_has_more: boolean;
+  pending_order: PendingBillingOrder | null;
+  checkout_blocked_reason: BillingCheckoutBlockedReason | null;
 }
 
 export interface DeleteAccountInput {
@@ -261,9 +299,11 @@ export interface PallyApi {
   recordActivityEvent(input: ActivityEventInput): Promise<void>;
   getAchievements(): Promise<AchievementsResponse>;
   getBillingProducts(): Promise<BillingProductsResponse>;
-  createCheckout(input: CheckoutInput): Promise<CheckoutResponse>;
+  getBillingOverview(): Promise<BillingOverviewResponse>;
+  createCheckout(input: CheckoutInput, expectedUserId: string): Promise<CheckoutResponse>;
   getSubscription(): Promise<SubscriptionResponse>;
-  refreshSubscription(): Promise<SubscriptionResponse>;
+  refreshSubscription(expectedUserId: string): Promise<SubscriptionResponse>;
+  cancelSubscription(expectedUserId: string): Promise<SubscriptionResponse>;
   deleteAccount(input: DeleteAccountInput): Promise<DeleteAccountResponse>;
 }
 
