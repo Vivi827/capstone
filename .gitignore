@@ -34,3 +34,19 @@ supabase/.temp/
 data/NICT_JLE_4.1.zip
 data/NICT_JLE_4.1/
 data/external_raw/
+
+# Santa Barbara Corpus is CC BY-ND 3.0 (no redistribution of derived text).
+# PM decision 2026-09-24: GitHub gets ID/source/schema/extraction-method only,
+# never the raw or trimmed Santa Barbara sentences. Working files below embed
+# that text (needed locally for labeling/training) and must stay untracked;
+# share them with the team via Drive/Slack, not git. Use
+# scripts/export_public_dataset_manifest.py to produce the public-safe file.
+data/fixtures/santa_barbara_utterances.jsonl
+data/fixtures/santa_barbara_ambiguous_informal_candidates.jsonl
+data/fixtures/pally_purpose_v1_ambiguousinformal_40.jsonl
+data/fixtures/pally_purpose_v1_items_100.jsonl
+data/fixtures/pally_purpose_v1_scoring_slot*.xlsx
+data/fixtures/~$*.xlsx
+
+# trained model artifacts (regenerate from scripts/train_purpose_axis_models.py)
+data/models/

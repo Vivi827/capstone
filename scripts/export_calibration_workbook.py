@@ -215,7 +215,7 @@ def sheet_intro(
         r += 1
 
 
-def sheet_rubric(wb: Workbook) -> None:
+def sheet_rubric(wb: Workbook, axes: tuple[str, ...] = AXES) -> None:
     ws = wb.create_sheet("채점 기준표")
     headers = ["축", "정의", "낮음 (0-33)", "보통 (34-66)", "높음 (67-100)", "판단 포인트"]
     widths = [18, 44, 30, 30, 34, 40]
@@ -223,7 +223,7 @@ def sheet_rubric(wb: Workbook) -> None:
         ws.cell(row=1, column=col, value=head)
         ws.column_dimensions[get_column_letter(col)].width = width
     _style_header(ws, 1, len(headers))
-    for i, axis in enumerate(AXES, start=2):
+    for i, axis in enumerate(axes, start=2):
         entry = RUBRIC[axis]
         values = [AXES_KO[axis], entry["정의"], entry["low"], entry["mid"], entry["high"], entry["포인트"]]
         for col, value in enumerate(values, start=1):
@@ -231,32 +231,33 @@ def sheet_rubric(wb: Workbook) -> None:
             cell.alignment = WRAP
             cell.border = BOX
         ws.row_dimensions[i].height = 118
-    note_row = len(AXES) + 3
+    note_row = len(axes) + 3
     ws.cell(row=note_row, column=1,
             value="0-33 / 34-66 / 67-100 은 큰 구간 감각용입니다. 실제 점수는 그 구간 안에서 신호의 세기에 따라 자유롭게 정하세요 (위 '척도 감각' 참고).").alignment = WRAP
     ws.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=6)
 
 
-def sheet_examples(wb: Workbook) -> None:
+def sheet_examples(wb: Workbook, axes: tuple[str, ...] = AXES) -> None:
     ws = wb.create_sheet("채점 예시")
-    headers = ["예시 발화", *[AXES_KO[a] for a in AXES], "채점 이유"]
-    widths = [46, 13, 13, 13, 13, 13, 60]
+    headers = ["예시 발화", *[AXES_KO[a] for a in axes], "채점 이유"]
+    widths = [46, *([13] * len(axes)), 60]
     for col, (head, width) in enumerate(zip(headers, widths), start=1):
         ws.cell(row=1, column=col, value=head)
         ws.column_dimensions[get_column_letter(col)].width = width
     _style_header(ws, 1, len(headers))
     for i, ex in enumerate(EXAMPLES, start=2):
         ws.cell(row=i, column=1, value=ex["utterance"]).alignment = WRAP
-        for j, axis in enumerate(AXES, start=2):
+        for j, axis in enumerate(axes, start=2):
             cell = ws.cell(row=i, column=j, value=ex[axis])
             cell.alignment = CENTER
-        ws.cell(row=i, column=7, value=ex["이유"]).alignment = WRAP
-        for col in range(1, 8):
+        reason_col = len(axes) + 2
+        ws.cell(row=i, column=reason_col, value=ex["이유"]).alignment = WRAP
+        for col in range(1, reason_col + 1):
             ws.cell(row=i, column=col).border = BOX
         ws.row_dimensions[i].height = 74
 
 
-def sheet_scoring(wb: Workbook, slot: str, items: list[dict[str, Any]]) -> None:
+def sheet_scoring(wb: Workbook, slot: str, items: list[dict[str, Any]], axes: tuple[str, ...] = AXES) -> None:
     ws = wb.create_sheet("채점 시트")
     ws.cell(row=1, column=1, value="reviewer_id →").font = SUB_FONT
     ws.cell(row=1, column=1).alignment = Alignment(horizontal="right")
@@ -265,8 +266,8 @@ def sheet_scoring(wb: Workbook, slot: str, items: list[dict[str, Any]]) -> None:
     ws.cell(row=2, column=2, value=slot)
 
     header_row = 4
-    headers = ["item_id", "발화 (utterance)", *[AXES_KO[a] for a in AXES], "메모 (선택)"]
-    widths = [16, 62, 12, 12, 12, 12, 12, 40]
+    headers = ["item_id", "발화 (utterance)", *[AXES_KO[a] for a in axes], "메모 (선택)"]
+    widths = [16, 62, *([12] * len(axes)), 40]
     for col, (head, width) in enumerate(zip(headers, widths), start=1):
         ws.cell(row=header_row, column=col, value=head)
         ws.column_dimensions[get_column_letter(col)].width = width
@@ -278,17 +279,18 @@ def sheet_scoring(wb: Workbook, slot: str, items: list[dict[str, Any]]) -> None:
     validation.prompt = "0~100 정수"
     ws.add_data_validation(validation)
 
+    note_col = len(axes) + 3
     for offset, item in enumerate(items):
         r = header_row + 1 + offset
         ws.cell(row=r, column=1, value=item["item_id"]).alignment = CENTER
         ws.cell(row=r, column=2, value=item["utterance"]).alignment = WRAP
-        for col in range(3, 8):
+        for col in range(3, note_col):
             cell = ws.cell(row=r, column=col)
             cell.alignment = CENTER
             cell.border = BOX
             validation.add(cell)
-        ws.cell(row=r, column=8).alignment = WRAP
-        for col in (1, 2, 8):
+        ws.cell(row=r, column=note_col).alignment = WRAP
+        for col in (1, 2, note_col):
             ws.cell(row=r, column=col).border = BOX
         ws.row_dimensions[r].height = 30
 
@@ -302,6 +304,7 @@ def build_workbook(
     out_path: Path,
     title: str = "Pally 5축 Calibration 채점 안내",
     purpose_lines: tuple[str, ...] | None = None,
+    axes: tuple[str, ...] = AXES,
 ) -> None:
     wb = Workbook()
     wb.remove(wb.active)
@@ -309,9 +312,9 @@ def build_workbook(
     if purpose_lines is not None:
         kwargs["purpose_lines"] = purpose_lines
     sheet_intro(wb, slot, len(items), seed, **kwargs)
-    sheet_rubric(wb)
-    sheet_examples(wb)
-    sheet_scoring(wb, slot, items)
+    sheet_rubric(wb, axes)
+    sheet_examples(wb, axes)
+    sheet_scoring(wb, slot, items, axes)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(out_path)
 

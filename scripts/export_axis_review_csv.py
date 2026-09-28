@@ -33,6 +33,9 @@ AXIS_SETS: dict[str, tuple[str, ...]] = {
     "energy-curiosity": ("Energy", "Curiosity"),
     "energy-humor": ("Energy", "Humor"),
     "energy-curiosity-intimacy": ("Energy", "Curiosity", "Intimacy"),
+    # text-only axes: no audio and no usage-history needed, so no new
+    # infrastructure required (rubric v2.1 excludes Energy and Intimacy here).
+    "formality-humor-curiosity": ("Formality", "Humor", "Curiosity"),
 }
 
 # reviewer slots are letters; slot count picks the prefix of this tuple.
@@ -43,6 +46,7 @@ BATCH_PARTITION_HINT = {
     "pilot": "train",
     "first40": "train",
     "bias_calib": "train",
+    "team_review_100": "dev",
 }
 
 
@@ -210,7 +214,7 @@ def build_parser() -> argparse.ArgumentParser:
     # legacy
     parser.add_argument("--review-set", choices=("gold", "train"), default=None)
     # batch
-    parser.add_argument("--annotation-batch", choices=("calibration", "pilot", "first40", "bias_calib"), default=None)
+    parser.add_argument("--annotation-batch", choices=("calibration", "pilot", "first40", "bias_calib", "team_review_100"), default=None)
     parser.add_argument("--dataset-partition", choices=("train", "dev", "test"), default=None)
     parser.add_argument("--reviewers", type=int, default=2, help="reviewer slot count for the batch schema")
     parser.add_argument("--seed", type=int, default=20260910, help="per-slot shuffle seed, recorded in the manifest")
