@@ -120,6 +120,85 @@ def test_axes_to_traits_always_returns_five_unique_tags():
         assert len(set(traits)) == 5
 
 
+def test_clean_title_strips_quotes_punctuation_and_whitespace():
+    assert main._clean_title('  "Diet and Hunger."\n') == "Diet and Hunger"
+    assert main._clean_title("“Cookie Preferences!”") == "Cookie Preferences"
+    assert main._clean_title("   ") is None
+    assert len(main._clean_title("word " * 40)) <= main._TITLE_MAX_CHARS
+
+
+def test_conversation_title_prefers_stored_title_then_first_utterance():
+    user_msgs = [{"transcript": "i had no lunch im diet"}]
+    assert main._conversation_title({"title": "Diet and Hunger"}, user_msgs) == "Diet and Hunger"
+    assert main._conversation_title({"title": None}, user_msgs) == "i had no lunch im diet"
+    assert main._conversation_title({}, []) is None
+
+
+def test_generate_conversation_title_reads_json_title(monkeypatch):
+    """제목만 JSON 으로 받아 정리한다 (일반 텍스트는 설명 문장이 붙는 경우가 잦았음)."""
+    import asyncio
+    import httpx
+    from types import SimpleNamespace
+
+    sent = {}
+
+    class FakeClient:
+        async def post(self, url, json, timeout):
+            sent["payload"] = json
+            body = {"candidates": [{"content": {"parts": [{"text": '{"title": "Diet and Hunger."}'}]}}]}
+            return httpx.Response(200, json=body)
+
+    monkeypatch.setattr(main.app, "state", SimpleNamespace(http_client=FakeClient()))
+    turns = [{"role": "user", "transcript": "I had no lunch"}, {"role": "pally", "transcript": "Oh no!"}]
+
+    assert asyncio.run(main._generate_conversation_title(turns)) == "Diet and Hunger"
+    config = sent["payload"]["generationConfig"]
+    assert config["responseMimeType"] == "application/json"
+    assert "User: I had no lunch" in sent["payload"]["contents"][0]["parts"][0]["text"]
+
+
+def test_assign_conversation_title_only_fills_empty_title(monkeypatch):
+    """제목은 title IS NULL 일 때만 저장 → 재개·재종료해도 한 번 정해진 제목은 고정."""
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+
+    sessions, messages = Mock(), Mock()
+    for query in (sessions, messages):
+        for method in ("select", "eq", "order", "update", "is_"):
+            getattr(query, method).return_value = query
+    messages.execute.return_value = SimpleNamespace(data=[{"role": "user", "transcript": "hello"}])
+    sb = Mock()
+    sb.table.side_effect = lambda name: {"sessions": sessions, "messages": messages}[name]
+    monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_generate_conversation_title", AsyncMock(return_value="Friendly Greetings"))
+
+    asyncio.run(main._assign_conversation_title("conversation-1"))
+
+    sessions.update.assert_called_once_with({"title": "Friendly Greetings"})
+    sessions.is_.assert_called_once_with("title", "null")
+
+
+def test_assign_conversation_title_skips_conversations_without_user_turns(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+
+    messages = Mock()
+    for method in ("select", "eq", "order"):
+        getattr(messages, method).return_value = messages
+    messages.execute.return_value = SimpleNamespace(data=[])
+    sb = Mock()
+    sb.table.side_effect = lambda name: messages
+    generate = AsyncMock(return_value="unused")
+    monkeypatch.setattr(main, "get_supabase", lambda: sb)
+    monkeypatch.setattr(main, "_generate_conversation_title", generate)
+
+    asyncio.run(main._assign_conversation_title("conversation-1"))
+
+    generate.assert_not_called()
+
+
 def test_app_imports():
     assert main.app is not None
 

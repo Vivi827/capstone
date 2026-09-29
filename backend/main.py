@@ -17,7 +17,7 @@ from datetime import datetime, time as dtime, timedelta, timezone
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -1915,6 +1915,89 @@ def _truncate(text: str, n: int) -> Optional[str]:
     return t[:n] if t else None
 
 
+# ── History 제목 — 대화를 처음 종료할 때 Gemini 가 영어 제목을 1회 생성해 고정 ──
+_TITLE_MAX_CHARS = 60
+_TITLE_TRANSCRIPT_MAX_CHARS = 4000  # 긴 대화도 제목 생성 비용·지연을 일정하게 유지
+
+
+def _conversation_title(session: dict, user_msgs: list) -> Optional[str]:
+    """저장된 제목이 있으면 그것을, 없으면(종료 전·생성 실패) 첫 발화를 제목으로 쓴다."""
+    stored = session.get("title")
+    if stored:
+        return stored
+    return _truncate(user_msgs[0]["transcript"], _TITLE_MAX_CHARS) if user_msgs else None
+
+
+def _clean_title(raw) -> Optional[str]:
+    """모델 출력의 따옴표·끝 문장부호·줄바꿈을 정리한다. 비면 None."""
+    title = " ".join(str(raw or "").split())
+    title = title.strip("\"'`“”‘’").rstrip(".!?,;:").strip()
+    return title[:_TITLE_MAX_CHARS] if title else None
+
+
+async def _generate_conversation_title(turns: list) -> Optional[str]:
+    """대화 전체를 보고 2~6 단어 영어 제목을 만든다.
+
+    일반 텍스트로 받으면 "제목만" 요청해도 설명 문장을 덧붙이는 경우가 잦아(실호출 확인),
+    JSON 스키마로 제목 필드만 받는다.
+    """
+    transcript = "\n".join(
+        f"{'User' if m['role'] == 'user' else 'Pally'}: {m['transcript']}" for m in turns
+    )[:_TITLE_TRANSCRIPT_MAX_CHARS]
+    prompt = (
+        "Write a short title for this English practice conversation, in English, 2-6 words. "
+        "Describe the topic the user talked about. No quotes, no ending punctuation.\n\n" + transcript
+    )
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 40,
+            "thinkingConfig": {"thinkingBudget": 0},
+            "responseMimeType": "application/json",
+            "responseSchema": {
+                "type": "OBJECT",
+                "properties": {"title": {"type": "STRING"}},
+                "required": ["title"],
+            },
+        },
+    }
+    resp = await app.state.http_client.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}",
+        json=payload,
+        timeout=15.0,
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"Gemini title error {resp.status_code}: {resp.text[:200]}")
+    text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    return _clean_title(json.loads(text)["title"])
+
+
+async def _assign_conversation_title(conversation_id: str) -> None:
+    """대화 종료 응답 뒤 백그라운드에서 실행. 제목이 아직 없을 때만 1회 저장한다.
+
+    title IS NULL 조건으로 갱신해, 재개·재종료나 동시 요청이 있어도 한 번 정해진
+    제목은 바뀌지 않는다. 실패하면 제목은 비어 있는 채로 남고(목록은 첫 발화 표시),
+    다음 종료 때 다시 시도한다.
+    """
+    try:
+        sb = get_supabase()
+        msgs = (sb.table("messages").select("role, transcript")
+                .eq("session_id", conversation_id).order("created_at").execute())
+        turns = msgs.data or []
+        if not any(m["role"] == "user" for m in turns):
+            return
+        title = await _generate_conversation_title(turns)
+        if not title:
+            logging.warning(f"conversation title empty after cleanup ({conversation_id})")
+            return
+        (sb.table("sessions").update({"title": title})
+         .eq("id", conversation_id).is_("title", "null").execute())
+    except Exception as e:
+        logging.error(f"conversation title generation failed ({conversation_id}): {e}")
+
+
 def _owned_session(sb, conversation_id: str, user_id: str) -> dict:
     """conversation 소유권 확인. 없거나 타인 소유면 404 (존재 숨김)."""
     try:
@@ -2029,7 +2112,7 @@ async def list_conversations(
         items.append({
             "id": s["id"],
             "status": "completed" if s.get("ended_at") else "active",
-            "title": _truncate(user_msgs[0]["transcript"], 60) if user_msgs else None,
+            "title": _conversation_title(s, user_msgs),
             "started_at": s["created_at"],
             "last_turn_at": ms[-1]["created_at"] if ms else None,
             "completed_at": s.get("ended_at"),
@@ -2072,7 +2155,7 @@ async def get_conversation(
     conv = {
         "id": session["id"],
         "status": "completed" if session.get("ended_at") else "active",
-        "title": _truncate(user_msgs[0]["transcript"], 60) if user_msgs else None,
+        "title": _conversation_title(session, user_msgs),
         "started_at": session["created_at"],
         "last_turn_at": ms[-1]["created_at"] if ms else None,
         "completed_at": session.get("ended_at"),
@@ -2132,10 +2215,15 @@ def _turn_detail(user_msg: Optional[dict], pally_msg: Optional[dict], seq: int) 
 @app.post("/api/conversations/{conversation_id}/complete")
 async def complete_conversation(
     conversation_id: str,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     _idem: str = Depends(require_idempotency_key),
 ):
-    """대화 종료. 재호출해도 같은 결과(멱등)."""
+    """대화 종료. 재호출해도 같은 결과(멱등).
+
+    제목이 아직 없으면 응답을 보낸 뒤 백그라운드에서 생성한다(1~2초가 걸려도
+    Pally 공개가 늦어지지 않게). 이미 제목이 있으면 재개·재종료해도 바꾸지 않는다.
+    """
     sb = get_supabase()
     session = _owned_session(sb, conversation_id, user_id)
     warnings: list = []
@@ -2150,6 +2238,9 @@ async def complete_conversation(
         if not _refresh_profile_traits(sb, user_id, conversation_id):
             warnings.append({"code": "traits_update_failed",
                              "message": "성향 태그를 갱신하지 못했어요. 다음 대화 종료 때 다시 반영돼요."})
+
+    if not session.get("title"):
+        background_tasks.add_task(_assign_conversation_title, conversation_id)
 
     return {"conversation": {
         "id": session["id"],
