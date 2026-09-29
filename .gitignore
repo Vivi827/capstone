@@ -50,3 +50,10 @@ data/fixtures/~$*.xlsx
 
 # trained model artifacts (regenerate from scripts/train_purpose_axis_models.py)
 data/models/
+
+# Phase 3 blind A/B eval: workbooks carry generated response text, and the
+# mapping file is the answer key that de-anonymizes X/Y -- neither goes to
+# evaluators or the public repo.
+data/fixtures/pally_purpose_v1_blind_eval_slot*.xlsx
+data/fixtures/pally_purpose_v1_blind_eval_mapping.json
+data/fixtures/pally_purpose_v1_responses.jsonl
